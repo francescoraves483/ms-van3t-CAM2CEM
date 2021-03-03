@@ -8,10 +8,10 @@
 #define	_FullPrecisionID_H_
 
 
-#include <asn_application.h>
+#include "asn_application.h"
 
 /* Including external dependencies */
-#include <NativeInteger.h>
+#include "NativeInteger.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,4 +40,4 @@ per_type_encoder_f FullPrecisionID_encode_uper;
 #endif
 
 #endif	/* _FullPrecisionID_H_ */
-#include <asn_internal.h>
+#include "asn_internal.h"

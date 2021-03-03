@@ -8,10 +8,10 @@
 #define	_SignalStrenght_H_
 
 
-#include <asn_application.h>
+#include "asn_application.h"
 
 /* Including external dependencies */
-#include <NativeInteger.h>
+#include "NativeInteger.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,4 +39,4 @@ per_type_encoder_f SignalStrenght_encode_uper;
 #endif
 
 #endif	/* _SignalStrenght_H_ */
-#include <asn_internal.h>
+#include "asn_internal.h"

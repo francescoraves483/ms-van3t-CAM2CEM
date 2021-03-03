@@ -8,14 +8,14 @@
 #define	_MandatoryContainer_H_
 
 
-#include <asn_application.h>
+#include "asn_application.h"
 
 /* Including external dependencies */
 #include "ConstellationID.h"
 #include "SatellitePRN.h"
 #include "Pseudorange.h"
 #include "GPSDataUncertainty.h"
-#include <constr_SEQUENCE.h>
+#include "constr_SEQUENCE.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,4 +42,4 @@ extern asn_TYPE_member_t asn_MBR_MandatoryContainer_1[4];
 #endif
 
 #endif	/* _MandatoryContainer_H_ */
-#include <asn_internal.h>
+#include "asn_internal.h"

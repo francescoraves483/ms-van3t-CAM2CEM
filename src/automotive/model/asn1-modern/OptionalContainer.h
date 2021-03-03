@@ -8,13 +8,13 @@
 #define	_OptionalContainer_H_
 
 
-#include <asn_application.h>
+#include "asn_application.h"
 
 /* Including external dependencies */
 #include "CarrierPhase.h"
 #include "GPSDataUncertainty.h"
 #include "Doppler.h"
-#include <constr_SEQUENCE.h>
+#include "constr_SEQUENCE.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,4 +41,4 @@ extern asn_TYPE_member_t asn_MBR_OptionalContainer_1[4];
 #endif
 
 #endif	/* _OptionalContainer_H_ */
-#include <asn_internal.h>
+#include "asn_internal.h"
