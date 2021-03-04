@@ -13,6 +13,7 @@
 
 #define CA_PORT 2001
 #define DEN_PORT 2002
+#define CE_PORT 2200 // Proposed BTP port for CEM messages
 
 namespace ns3
 {
@@ -33,6 +34,7 @@ namespace ns3
     void setSocketRx(Ptr<Socket> socket_rx);
     void addCAMRxCallback(std::function<void(BTPDataIndication_t,Address)> rx_callback) {m_cam_ReceiveCallback=rx_callback;}
     void addDENMRxCallback(std::function<void(BTPDataIndication_t,Address)> rx_callback) {m_denm_ReceiveCallback=rx_callback;}
+    void addCEMRxCallback(std::function<void(BTPDataIndication_t,Address)> rx_callback) {m_cem_ReceiveCallback=rx_callback;}
     void sendBTP(BTPDataRequest_t dataRequest);
     void receiveBTP(GNDataIndication_t, Address address);
     void cleanup();
@@ -43,6 +45,7 @@ namespace ns3
 
     std::function<void(BTPDataIndication_t,Address)> m_cam_ReceiveCallback;
     std::function<void(BTPDataIndication_t,Address)> m_denm_ReceiveCallback;
+    std::function<void(BTPDataIndication_t,Address)> m_cem_ReceiveCallback;
 
   };
 }

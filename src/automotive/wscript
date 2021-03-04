@@ -295,6 +295,7 @@ def build(bld):
 
         # CAM2CEM files
         '/model/Facilities/gdpGPSTraceClient.cc',
+        '/model/Facilities/ceBasicService.cc',
         ]
 
     module_test = bld.create_ns3_module_test_library('automotive')
@@ -584,6 +585,7 @@ def build(bld):
         # CAM2CEM files
         '/model/Facilities/gdp.h',
         '/model/Facilities/gdpGPSTraceClient.h',
+        '/model/Facilities/ceBasicService.h',
         ]
 
     if bld.env.ENABLE_EXAMPLES:
