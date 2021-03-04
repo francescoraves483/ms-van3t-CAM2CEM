@@ -12,17 +12,14 @@ namespace ns3 {
     GDPGPSTraceClient();
 
     // Implementation of the GDP virtual functions
-    // A "satmap" is returned, i.e. a C++ map containing the required information for each
-    // satellite and for each satellite signal. The key of the satmap is a tuple of integers,
-    // used to identify each satellite and signal of each satellite
     GDP::satmap<CEM_mandatory_data_t> getCEMMandatoryData();
     GDP::satmap<Pseudorange_t> getPseudoRange();
     GDP::satmap<GPSDataUncertainty_t> getPseudoRangeUncertainty();
     GDP::satmap<DifferentialPseudorange_t> getDifferentialPseudoRange();
 
     // Implementation of the GDP virtual functions returning a pointer (Optional Containers)
-    GDP::satmap<OptionalContainer_t> *getFullPrecisionOptionalContainer();
-    GDP::satmap<DifferentialOptionalContainer_t> *getDifferentialOptionalContainer();
+    GDP::satmap<OptionalContainer_t *> getFullPrecisionOptionalContainer();
+    GDP::satmap<DifferentialOptionalContainer_t *> getDifferentialOptionalContainer();
 
     void gdpFree(void* optional_field)
     {
@@ -30,6 +27,14 @@ namespace ns3 {
         {
           free(optional_field);
         }
+    }
+
+    void gdpINTEGERFree(INTEGER_t *integer_field)
+    {
+      if(integer_field!=NULL && integer_field->buf!=NULL)
+      {
+        free(integer_field->buf);
+      }
     }
 
     private:
