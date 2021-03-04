@@ -16,7 +16,7 @@
  * Created by:
  *  Marco Malinverno, Politecnico di Torino (marco.malinverno1@gmail.com)
  *  Francesco Raviglione, Politecnico di Torino (francescorav.es483@gmail.com)
- *  Giuseppe Avino, Politecnico di Torino (giuseppe.avino@gmail.com)
+ *  Giuseppe Avino, Politecnico di Torino (giuseppe.avino@polito.it)
 */
 
 #include "ceBasicService.h"
