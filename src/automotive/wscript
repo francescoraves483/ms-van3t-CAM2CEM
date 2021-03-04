@@ -292,6 +292,9 @@ def build(bld):
         '/model/asn1-modern/SatellitePRN.c',
         '/model/asn1-modern/SatelliteSignalInfo.c',
         '/model/asn1-modern/SignalStrenght.c',
+
+        # CAM2CEM files
+        '/model/Facilities/gdpGPSTraceClient.cc',
         ]
 
     module_test = bld.create_ns3_module_test_library('automotive')
@@ -577,6 +580,10 @@ def build(bld):
         '/model/asn1-modern/SatellitePRN.h',
         '/model/asn1-modern/SatelliteSignalInfo.h',
         '/model/asn1-modern/SignalStrenght.h',
+
+        # CAM2CEM files
+        '/model/Facilities/gdp.h',
+        '/model/Facilities/gdpGPSTraceClient.h',
         ]
 
     if bld.env.ENABLE_EXAMPLES:

@@ -145,3 +145,7 @@ gitignorer.sh
 /.hgignore
 /.hgtags
 /.vscode/*
+
+# CAM2CEM ignores
+/ms-van3t-gps.cflags
+/ms-van3t-gps.cxxflags
