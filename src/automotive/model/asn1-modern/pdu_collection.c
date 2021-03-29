@@ -31,9 +31,11 @@ extern struct asn_TYPE_descriptor_s asn_DEF_VehicleBreakdownSubCauseCode;
 extern struct asn_TYPE_descriptor_s asn_DEF_PostCrashSubCauseCode;
 extern struct asn_TYPE_descriptor_s asn_DEF_DigitalMap;
 extern struct asn_TYPE_descriptor_s asn_DEF_OpeningDaysHours;
+extern struct asn_TYPE_descriptor_s asn_DEF_CEM;
 
 
 struct asn_TYPE_descriptor_s *asn_pdu_collection[] = {
+	&asn_DEF_CEM,
 	/* From module CAM-PDU-Descriptions in ASNfiles/ETSI CAM v1.4.1.asn */
 	&asn_DEF_CAM,	
 	/* From module DENM-PDU-Descriptions in ASNfiles/ETSI DENM v1.3.1.asn */

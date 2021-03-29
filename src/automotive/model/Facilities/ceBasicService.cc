@@ -87,7 +87,7 @@ namespace ns3
   CEBasicService::setSocketRx (Ptr<Socket> socket_rx)
   {
     m_btp->setSocketRx(socket_rx);
-    m_btp->addCAMRxCallback (std::bind(&CEBasicService::receiveCem,this,std::placeholders::_1,std::placeholders::_2));
+    m_btp->addCEMRxCallback (std::bind(&CEBasicService::receiveCem,this,std::placeholders::_1,std::placeholders::_2));
   }
 
   void
@@ -113,7 +113,7 @@ namespace ns3
     buffer=(uint8_t *)malloc((packet->GetSize ())*sizeof(uint8_t));
     packet->CopyData (buffer, packet->GetSize ());
 
-    /* Try to check if the received packet is really a CAM */
+    /* Try to check if the received packet is really a CEM */
     if (buffer[1]!=FIX_CEMID)
       {
         NS_LOG_ERROR("Warning: received a message which has messageID '"<<buffer[1]<<"' but '200' was expected.");
