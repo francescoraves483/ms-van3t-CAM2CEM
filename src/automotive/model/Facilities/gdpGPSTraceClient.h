@@ -20,6 +20,7 @@ namespace ns3 {
     // Implementation of the GDP virtual functions returning a pointer (Optional Containers)
     GDP::satmap<OptionalContainer_t *> getFullPrecisionOptionalContainer();
     GDP::satmap<DifferentialOptionalContainer_t *> getDifferentialOptionalContainer();
+    GDP::satmap<UncertaintyContainer_t *> getFullPrecisionUncertaintyContainer();
 
     void gdpFree(void* optional_field)
     {

@@ -44,6 +44,7 @@ namespace {
 
         return result;
     }
+}
 
 namespace ns3 {
     NS_LOG_COMPONENT_DEFINE("GPSRawTraceClientHelper");
@@ -53,23 +54,31 @@ namespace ns3 {
         m_verbose=false;
         m_header=false;
         m_singletrace=true;
-        m_increasingVehID=0;
+        m_numVehicles = 0;
     }
 
     std::map<std::string,GPSRawTraceClient*>
     GPSRawTraceClientHelper::createRawTraceClientsFromCSV(std::string filepath)
     {
       // Variables to read the file
-      std::ifstream              inFile;
-      std::string                line;
-      std::vector<std::string>   result;
+      std::ifstream inFile;
+      std::string line;
+      std::vector<std::string> result;
+      uint8_t shift_idx = 0;
+      double currentGNSStimestamp;
 
       // Variables to scan each row of the file
       std::string currentVehId;
       std::map<std::string,GPSRawTraceClient*> m_GPSRawTraceClient;
 
+      if(m_numVehicles == 0 && m_singletrace == true)
+      {
+          NS_FATAL_ERROR("Error: attempted to use createRawTraceClientsFromCSV with a single trace and 0 total vehicles.");
+      }
+
       inFile.open(filepath);
-      if (!inFile) {
+      if (!inFile)
+      {
           NS_FATAL_ERROR("Unable to open the file: "<<filepath);
       }
 
@@ -78,79 +87,106 @@ namespace ns3 {
          std::getline(inFile, line);
       }
 
+      if(m_singletrace == true)
+      {
+          for(int i=0;i<m_numVehicles;i++)
+          {
+              GPSRawTraceClient* gpsrawclient = new GPSRawTraceClient(std::to_string(i));
+              m_GPSRawTraceClient.insert(std::make_pair(std::to_string(i), gpsrawclient));
+          }
+      }
+
       while (std::getline(inFile, line))
       {
-
           std::istringstream iss(line);
           result = getNextLineAndSplitIntoTokens(line);
 
-          // Get the vehicle id
+          currentGNSStimestamp = 0;
+
+          // Get the vehicle id (if m_singletrace is not 'false')
           if(m_singletrace == false) {
               currentVehId = result[0];
+              shift_idx = 1;
+          }
+
+          // Check if the element is present in the map m_GPSTraceClient (only when the log file contains data related to different vehicles)
+          // Otherwise, if m_singletrace is true, the same Raw GPS Data trace will be used for all the vehicles (and m_numVehicles will be considered)
+          if (m_singletrace == false && m_GPSRawTraceClient.find(currentVehId) == m_GPSRawTraceClient.end() ) {
+              // Not found - needed to create the entry for such a vector
+              GPSRawTraceClient* gpsrawclient = new GPSRawTraceClient(currentVehId);
+              m_GPSRawTraceClient.insert(std::make_pair(currentVehId, gpsrawclient));
+          }
+
+          currentGNSStimestamp = std::stod(result[1 + shift_idx]);
+
+          // Full precision interframe
+          if(result[0 + shift_idx]=="I") {
+              GPSRawTraceClient::iframe_data_t iframedata;
+
+              long numrows = stol(result[2 + shift_idx]);
+              // Read the current "I" frame data
+              for(int i=0;i<numrows;i++)
+              {
+                  std::getline(inFile, line);
+                  std::istringstream iss(line);
+                  result = getNextLineAndSplitIntoTokens(line);
+
+                  std::pair<int,int> map_idx = std::pair<int,int>(std::stoi(result[0]),std::stoi(result[1]));
+
+                  iframedata.pseudorange[map_idx] = std::stod(result[2]);
+                  iframedata.pseudorange_uncertainty[map_idx] = std::stod(result[3]);
+                  iframedata.carrierphase[map_idx] = std::stod(result[4]);
+                  iframedata.carrierphase_uncertainty[map_idx] = std::stod(result[5]);
+                  iframedata.doppler[map_idx] = std::stod(result[6]);
+                  iframedata.doppler_uncertainty[map_idx] = std::stod(result[7]);
+                  iframedata.signalstrength[map_idx] = std::stod(result[8]);
+              }
+
+              for(int i=0;m_singletrace == true && i<m_numVehicles;i++) {
+                  m_GPSRawTraceClient[std::to_string(i)]->setNewIFrame(currentGNSStimestamp,iframedata);
+              }
+
+              if(m_singletrace == false) {
+                  m_GPSRawTraceClient[currentVehId]->setNewIFrame(currentGNSStimestamp,iframedata);
+              }
+          // Differential intra-frame
+          } else if(result[0]=="D") {
+              // Read the current "D" frame data
+              GPSRawTraceClient::dframe_data_t dframedata;
+
+              long numrows = stol(result[2 + shift_idx]);
+
+              // Read the current "D" frame data
+              for(int i=0;i<numrows;i++)
+              {
+                  std::getline(inFile, line);
+                  std::istringstream iss(line);
+                  result = getNextLineAndSplitIntoTokens(line);
+
+                  std::pair<int,int> map_idx = std::pair<int,int>(std::stoi(result[0]),std::stoi(result[1]));
+
+                  dframedata.differential_pseudorange[map_idx] = std::stod(result[2]);
+                  dframedata.differential_carrierphase[map_idx] = std::stod(result[3]);
+                  dframedata.differential_doppler[map_idx] = std::stod(result[4]);
+              }
+
+              for(int i=0;m_singletrace == true && i<m_numVehicles;i++) {
+                  m_GPSRawTraceClient[std::to_string(i)]->setNewDFrame(currentGNSStimestamp,dframedata);
+              }
+
+              if(m_singletrace == false) {
+                  m_GPSRawTraceClient[currentVehId]->setNewDFrame(currentGNSStimestamp,dframedata);
+              }
           } else {
-              currentVehId = m_increasingVehID++;
-          }
-
-          // Check if the element is present in the map m_GPSTraceClient
-          if ( m_GPSTraceClient.find(currentVehId) == m_GPSTraceClient.end() ) {
-            // Not found - needed to create the entry for such a vector
-            GPSRawTraceClient* gpsrawclient = new GPSRawTraceClient(currentVehId);
-            m_GPSRawTraceClient.insert(std::make_pair(currentVehId, gpsclient));
-          }
-
-          double lat=std::stod(result[2]);
-          double lon=std::stod(result[3]);
-          double tm_x,tm_y,tm_gamma,tm_kappa;
-
-          // Project lat and lon to a Cartesian Plane using Transverse Mercator
-          TransverseMercator_Forward (&tmerc,lon0,lat,lon,&tm_x,&tm_y,&tm_gamma,&tm_kappa);
-
-          m_GPSTraceClient[currentVehId]->setLon0(lon0); // To allow later on to perform TransverseMercator_forward
-
-          //std::cout<<"Converted ("<<lat<<","<<lon<<") into ("<<tm_x<<","<<tm_y<<") [reflon:"<<lon0<<"]"<<std::endl;
-
-          // Save the info of this line of csv
-          m_GPSTraceClient[currentVehId]->setTimestamp(result[1]);
-          m_GPSTraceClient[currentVehId]->setLat(result[2]);
-          m_GPSTraceClient[currentVehId]->setLon(result[3]);
-          //
-          m_GPSTraceClient[currentVehId]->setX(tm_x);
-          m_GPSTraceClient[currentVehId]->setY(tm_y);
-
-          m_GPSTraceClient[currentVehId]->setSpeedms(result[4]);
-          m_GPSTraceClient[currentVehId]->setheading(result[5]); //define if rad or deg: 5:rad - 6:deg
-          m_GPSTraceClient[currentVehId]->setAccelmsq(result[7]);
-
-          // Find the minimum x and y values
-          if(tm_x<min_tm_x)
-          {
-              min_tm_x=tm_x;
-          }
-
-          if(tm_y<min_tm_y)
-          {
-              min_tm_y=tm_y;
+              NS_FATAL_ERROR("Error: wrong format in file: " + filepath);
           }
       }
 
       // Sort for each object the vector "vehiclesdata" according to the timestamp
-      // Shift also the x,y coordinate in order to have the origin (0,0) at the minimum y and minimum y point
-      for(std::map<std::string,GPSTraceClient*>::iterator it=m_GPSTraceClient.begin(); it!=m_GPSTraceClient.end(); ++it) {
-          it->second->sortVehiclesdata();
-          it->second->shiftOrigin(min_tm_x,min_tm_y);
+      for(std::map<std::string,GPSRawTraceClient*>::iterator it=m_GPSRawTraceClient.begin(); it!=m_GPSRawTraceClient.end(); ++it) {
+          it->second->sortRawdata ();
       }
 
-      //*
-      // PRINT ANY OBJECT AND ITS CORRESPONDING VECTOR *
-      if(m_verbose==true) {
-          for(std::map<std::string,GPSTraceClient*>::iterator it=m_GPSTraceClient.begin(); it!=m_GPSTraceClient.end(); ++it) {
-              std::cout << "Key: " << it->first << std::endl;
-              it->second->printVehiclesdata();
-              std::cout << std::endl;
-          }
-      }
-      //*/
-      return m_GPSTraceClient;
+      return m_GPSRawTraceClient;
     }
-}
-
+  }

@@ -15,12 +15,12 @@ namespace ns3
       // satellite and for each satellite signal. The key of the satmap is a tuple of
       // integers <satellite ID, signal ID>, used to identify each satellite and signal
       // of each satellite
-      typedef std::tuple<int, int> satsigID;
+      typedef std::pair<int, int> satsigID;
       template <typename T> using satmap = std::map<satsigID, T>;
 
       // Data structure containing the data mandatory for any kind of CEM frame
       typedef struct CEM_mandatory_data {
-        ConstellationID_t constellationID;
+        SignalID_t signalID;
         SatellitePRN_t satellitePRN;
       } CEM_mandatory_data_t;
 

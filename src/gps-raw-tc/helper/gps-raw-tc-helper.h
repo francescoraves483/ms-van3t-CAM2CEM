@@ -5,8 +5,8 @@
 #include <map>
 #include "ns3/gps-raw-tc.h"
 
-#define GPS_TC_MAP_ITERATOR(mapname,itername) for(std::map<std::string,GPSTraceClient*>::iterator itername=mapname.begin(); itername!=mapname.end(); ++itername)
-#define GPS_TC_IT_OBJECT(itername) itername->second
+#define GPS_RAW_TC_MAP_ITERATOR(mapname,itername) for(std::map<std::string,GPSRawTraceClient*>::iterator itername=mapname.begin(); itername!=mapname.end(); ++itername)
+#define GPS_RAW_TC_IT_OBJECT(itername) itername->second
 
 namespace ns3 {
 
@@ -15,7 +15,7 @@ class GPSRawTraceClientHelper
     public:
       GPSRawTraceClientHelper();
 
-      std::map<std::string,GPSRawTraceClientHelper*> createRawTraceClientsFromCSV(std::string filepath);
+      std::map<std::string,GPSRawTraceClient*> createRawTraceClientsFromCSV(std::string filepath);
 
       // Set or unset a verbose mode
       // Default: false (verbose mode not activated)
@@ -31,11 +31,15 @@ class GPSRawTraceClientHelper
         m_singletrace = single_trace;
       }
 
+      void setSingleTraceModeVehicles(int numvehicles) {
+        m_numVehicles = numvehicles;
+      }
+
     private:
       bool m_verbose;
       bool m_header;
       bool m_singletrace;
-      int m_increasingVehID;
+      int m_numVehicles;
 };
 
 }

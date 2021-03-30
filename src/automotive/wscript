@@ -12,7 +12,7 @@ def configure(conf):
     conf.env.append_value('LIBPATH', ["/usr/local/lib"])
 
 def build(bld):
-    module = bld.create_ns3_module('automotive', ['core','fd-net-device','wifi', 'applications', 'mobility','internet', 'config-store','stats', 'traci', 'gps-tc'])
+    module = bld.create_ns3_module('automotive', ['core','fd-net-device','wifi', 'applications', 'mobility','internet', 'config-store','stats', 'traci', 'gps-tc', 'gps-raw-tc'])
     module.source = [
         'helper/areaSpeedAdvisorClient80211p-helper.cc',
         'helper/areaSpeedAdvisorServer80211p-helper.cc',
@@ -291,7 +291,9 @@ def build(bld):
         '/model/asn1-modern/Pseudorange.c',
         '/model/asn1-modern/SatellitePRN.c',
         '/model/asn1-modern/SatelliteSignalInfo.c',
-        '/model/asn1-modern/SignalStrenght.c',
+        '/model/asn1-modern/SignalStrength.c',
+        '/model/asn1-modern/SignalID.c',
+        '/model/asn1-modern/UncertaintyContainer.c',
 
         # CAM2CEM files
         '/model/Facilities/gdpGPSTraceClient.cc',
@@ -580,7 +582,9 @@ def build(bld):
         '/model/asn1-modern/Pseudorange.h',
         '/model/asn1-modern/SatellitePRN.h',
         '/model/asn1-modern/SatelliteSignalInfo.h',
-        '/model/asn1-modern/SignalStrenght.h',
+        '/model/asn1-modern/SignalStrength.h',
+        '/model/asn1-modern/SignalID.h',
+        '/model/asn1-modern/UncertaintyContainer.h',
 
         # CAM2CEM files
         '/model/Facilities/gdp.h',

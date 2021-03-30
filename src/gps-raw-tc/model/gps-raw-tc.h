@@ -10,84 +10,85 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <variant>
 
 #include "ns3/core-module.h"
+#include "ns3/node.h"
+#include "ns3/gdp.h"
 
 namespace ns3 {
 
   class GPSRawTraceClient : public Object
   {
       public:
+          typedef enum {
+            FULL_PRECISION_I_FRAME,
+            DIFFERENTIAL_D_FRAME
+          } e_frametype;
+
+          typedef struct _iframe_data {
+              GDP::satmap<double> pseudorange;
+              GDP::satmap<double> pseudorange_uncertainty;
+              GDP::satmap<int64_t> carrierphase;
+              GDP::satmap<double> carrierphase_uncertainty;
+              GDP::satmap<double> doppler;
+              GDP::satmap<double> doppler_uncertainty;
+              GDP::satmap<long int> signalstrength;
+          } iframe_data_t;
+
+          typedef struct _dframe_data {
+              GDP::satmap<double> differential_pseudorange;
+              GDP::satmap<double> differential_carrierphase;
+              GDP::satmap<double> differential_doppler;
+          } dframe_data_t;
+
+          typedef struct _raw_positioning_data {
+              e_frametype type;
+              uint64_t cemTstamp;
+
+              iframe_data_t iframe_data;
+              dframe_data_t dframe_data;
+
+              // To order the vector according to "cemTstamp"
+              bool operator < (const _raw_positioning_data& str) const
+              {
+                  return (cemTstamp < str.cemTstamp);
+              }
+          } raw_positioning_data_t;
+
           GPSRawTraceClient(std::string vehID);
           virtual ~GPSRawTraceClient();
           void sortRawdata();
+          void printDebugRawData();
 
           // Setter
-          void setTimestamp(std::string);
-          void setLat(std::string);
-          void setLon(std::string);
-          void setX(double);
-          void setY(double);
-          void setSpeedms(std::string);
-          void setheading(std::string);
-          void setAccelmsq(std::string);
-          void setLon0(double);
+          void setNewIFrame(uint64_t cemTstamp,iframe_data_t data);
+          void setNewDFrame(uint64_t cemTstamp,dframe_data_t data);
 
           // Getter
-          long int getTimestamp();
-          double getLat();
-          double getLon();
-          double getX();
-          double getY();
-          double getSpeedms();
-          double getHeadingdeg();
-          double getAccelmsq();
-          double getTravelledDistance();
+          raw_positioning_data_t getLastFrameData();
           std::string getID();
-          uint64_t getLastIndex();
-          double getLon0();
 
-          // Start "playing" the trace
+          // Start "playing" the raw GPS trace
           void playTrace(Time const &delay);
 
           // Set the functions to create/destroy node
-          void GPSTraceClientSetup(std::function<Ptr<Node>()> create_fcn,std::function<void(Ptr<Node>)> destroy_fcn);
+          void GPSRawTraceClientSetup(std::function<Ptr<Node>()> start_fcn,std::function<void(Ptr<Node>)> end_fcn);
 
           // Stop "playing" the trace
           void StopUpdates();
 
       private:
-          typedef struct _positioning_data {
-              double lat;
-              double lon;
-              double tm_x;
-              double tm_y;
-              double speedms;
-              double accelmsq;
-              double heading;
-              long int utc_time; // UTC time as Unix timestamp since the epoch, in microseconds
-
-              // To order the vector according to "utc_time"
-              bool operator < (const _positioning_data& str) const
-              {
-                  return (utc_time < str.utc_time);
-              }
-
-          } positioning_data_t;
-
-          double m_lon0;
-
-          std::vector<positioning_data_t> vehiclesdata;
+          std::vector<raw_positioning_data_t> vehiclesdata;
           long unsigned int m_lastvehicledataidx;
-          bool m_updatefirstiter;
           std::string m_vehID;
-          double m_travelled_distance;
 
-          // Function pointers to node include/exclude functions
-          std::function<Ptr<Node>()> m_includeNode;
-          std::function<void(Ptr<Node>)> m_excludeNode;
+          // Function pointers to the start/end trace callbacks
+          std::function<Ptr<Node>()> m_startTrace;
+          std::function<void(Ptr<Node>)> m_endTrace;
 
-          EventId m_event_updatepos;
+          void UpdateRawData();
+          EventId m_event_updaterawdata;
 
           Ptr<Node> m_vehNode;
 

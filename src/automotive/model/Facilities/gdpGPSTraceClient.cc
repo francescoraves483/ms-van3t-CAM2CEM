@@ -45,7 +45,7 @@ namespace ns3
     GDP::satmap<GDP::CEM_mandatory_data_t> cemMandatoryDataMap;
 
     cemMandatoryDataMap[satsigID(0,0)].satellitePRN=SatellitePRN_unavailable;
-    cemMandatoryDataMap[satsigID(0,0)].constellationID=ConstellationID_unavailable;
+    cemMandatoryDataMap[satsigID(0,0)].signalID=SignalID_unavailable;
 
     return cemMandatoryDataMap;
   }
@@ -95,15 +95,12 @@ namespace ns3
     if(optionalContainerPtr)
     {
       optionalContainerPtr->doppler=Doppler_unavailable;
-      optionalContainerPtr->dopplerUncertainty=GPSDataUncertainty_unavailable;
 
       intmax_t carrierPhase=CarrierPhase_unavailable;
       Pseudorange_t carrierPhaseI;
       memset(&carrierPhaseI, 0, sizeof(INTEGER_t));
       asn_imax2INTEGER(&carrierPhaseI, carrierPhase);
       optionalContainerPtr->carrierPhase=carrierPhaseI;
-
-      optionalContainerPtr->carrierPhaseUncertainty=GPSDataUncertainty_unavailable;
     }
 
     // If optionalContainerPtr is NULL, NULL will be assigned to the current map entry
@@ -122,14 +119,32 @@ namespace ns3
     if(differentialOptionalContainerPtr)
     {
       differentialOptionalContainerPtr->differentialDoppler=DifferentialDoppler_unavailable;
-      differentialOptionalContainerPtr->differentialDopplerUncertainty=GPSDataUncertainty_unavailable;
       differentialOptionalContainerPtr->differentialCarrierPhase=DifferentialCarrierPhase_unavailable;
-      differentialOptionalContainerPtr->differentialCarrierPhaseUncertainty=GPSDataUncertainty_unavailable;
     }
 
     // If optionalContainerPtr is NULL, NULL will be assigned to the current map entry
     differentialOptionalContainerMap[satsigID(0,0)]=differentialOptionalContainerPtr;
 
     return differentialOptionalContainerMap;
+  }
+
+  GDP::satmap<UncertaintyContainer_t *>
+  GDPGPSTraceClient::getFullPrecisionUncertaintyContainer()
+  {
+    GDP::satmap<UncertaintyContainer_t *> uncertaintyContainerMap;
+    UncertaintyContainer_t *uncertaintyContainerPtr = (UncertaintyContainer_t *) calloc(1,sizeof(UncertaintyContainer_t));
+
+    // This should then be repeated, in a loop, for each satellite and signal
+    if(uncertaintyContainerPtr)
+    {
+      uncertaintyContainerPtr->pseudorangeUncertainty=GPSDataUncertainty_unavailable;
+      uncertaintyContainerPtr->carrierPhaseUncertainty=GPSDataUncertainty_unavailable;
+      uncertaintyContainerPtr->dopplerUncertainty=GPSDataUncertainty_unavailable;
+    }
+
+    // If optionalContainerPtr is NULL, NULL will be assigned to the current map entry
+    uncertaintyContainerMap[satsigID(0,0)]=uncertaintyContainerPtr;
+
+    return uncertaintyContainerMap;
   }
 }
