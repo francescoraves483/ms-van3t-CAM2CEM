@@ -54,6 +54,7 @@ namespace ns3
     const int m_differentialIDMax = 8;
 
     void frameCallback(GPSRawTraceClient::raw_positioning_data_t raw_frame_data);
+    void freeCEM(CEM_t *cem);
 
     CEBasicService_error_t generateAndEncodeCem(GPSRawTraceClient::raw_positioning_data_t rawdata);
 
@@ -82,6 +83,8 @@ namespace ns3
 
     int m_fullPrecisionID;
     int m_differentialID;
+
+    std::queue<void *> m_ptr_queue;
   };
 }
 

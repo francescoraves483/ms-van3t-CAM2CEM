@@ -57,17 +57,25 @@ namespace ns3
   void
   GPSRawTraceClient::setNewIFrame(uint64_t cemTstamp,GDP::satmap<iframe_data_t> data)
   {
-      vehiclesdata[vehiclesdata.size()-1].type = FULL_PRECISION_I_FRAME;
-      vehiclesdata[vehiclesdata.size()-1].cemTstamp = cemTstamp;
-      vehiclesdata[vehiclesdata.size()-1].iframe_data = data;
+      GPSRawTraceClient::raw_positioning_data_t curr_rawdata;
+
+      curr_rawdata.type = FULL_PRECISION_I_FRAME;
+      curr_rawdata.cemTstamp = cemTstamp;
+      curr_rawdata.iframe_data = data;
+
+      vehiclesdata.push_back (curr_rawdata);
   }
 
   void
   GPSRawTraceClient::setNewDFrame(uint64_t cemTstamp,GDP::satmap<dframe_data_t> data)
   {
-      vehiclesdata[vehiclesdata.size()-1].type = DIFFERENTIAL_D_FRAME;
-      vehiclesdata[vehiclesdata.size()-1].cemTstamp = cemTstamp;
-      vehiclesdata[vehiclesdata.size()-1].dframe_data = data;
+      GPSRawTraceClient::raw_positioning_data_t curr_rawdata;
+
+      curr_rawdata.type = DIFFERENTIAL_D_FRAME;
+      curr_rawdata.cemTstamp = cemTstamp;
+      curr_rawdata.dframe_data = data;
+
+      vehiclesdata.push_back (curr_rawdata);
   }
 
   GPSRawTraceClient::raw_positioning_data_t
@@ -118,7 +126,10 @@ namespace ns3
   void
   GPSRawTraceClient::CreateNode()
   {
-      m_vehNode=m_startTrace();
+      if(m_startTrace != nullptr)
+      {
+        m_vehNode=m_startTrace();
+      }
 
       // First position update
       m_lastvehicledataidx=0;
@@ -140,8 +151,11 @@ namespace ns3
 
     if(m_lastvehicledataidx+1==vehiclesdata.size())
       {
-        m_endTrace(m_vehNode);
-        m_vehNode=NULL;
+        if(m_vehNode != NULL && m_endTrace != nullptr)
+        {
+          m_endTrace(m_vehNode);
+          m_vehNode=NULL;
+        }
 
         NS_LOG_INFO("Raw Trace terminated for vehicle/object with ID: "<<m_vehID);
 

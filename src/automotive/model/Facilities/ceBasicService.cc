@@ -190,6 +190,8 @@ namespace ns3
     // CONVERSIONS ARE STILL MISSING
     if(rawdata.type == GPSRawTraceClient::FULL_PRECISION_I_FRAME)
     {
+        cem->cem.present = CoopEnhancement_PR_fps;
+
         // Full precision ID
         cem->cem.choice.fps.fullPrecisionID = m_fullPrecisionID;
 
@@ -201,6 +203,7 @@ namespace ns3
         memset(&cemTstamp_I, 0, sizeof(INTEGER_t));
         asn_imax2INTEGER(&cemTstamp_I, rawdata.cemTstamp);
         cem->cem.choice.fps.cemTstamp = cemTstamp_I;
+        m_ptr_queue.push ((void *) cem->cem.choice.fps.cemTstamp.buf);
 
         for (auto const& x : rawdata.iframe_data)
         {
@@ -216,15 +219,19 @@ namespace ns3
             memset(&pseudorange_I, 0, sizeof(INTEGER_t));
             asn_imax2INTEGER(&pseudorange_I, x.second.pseudorange);
             ssi->mandatoryContainer.pseudorange = pseudorange_I;
+            m_ptr_queue.push ((void *) ssi->mandatoryContainer.pseudorange.buf);
 
             // Optional Container
             ssi->optionalContainer = (OptionalContainer_t *)calloc(1,sizeof(OptionalContainer_t));
+            m_ptr_queue.push((void *) ssi->optionalContainer);
+
             ssi->optionalContainer->doppler = (Doppler_t) x.second.doppler;
 
             INTEGER_t carrierphase_I;
             memset(&carrierphase_I, 0, sizeof(INTEGER_t));
             asn_imax2INTEGER(&carrierphase_I, x.second.carrierphase);
             ssi->optionalContainer->carrierPhase = carrierphase_I;
+            m_ptr_queue.push ((void *) ssi->optionalContainer->carrierPhase.buf);
 
             ssi->optionalContainer->signalStrength = (SignalStrength_t) x.second.signalstrength;
 
@@ -235,6 +242,7 @@ namespace ns3
                x.second.carrierphase_uncertainty != GPSDataUncertainty_unavailable) {
 
                 ssi->uncertaintyContainer = (UncertaintyContainer_t *)calloc(1,sizeof(UncertaintyContainer_t));
+                m_ptr_queue.push((void *) ssi->uncertaintyContainer);
 
                 ssi->uncertaintyContainer->dopplerUncertainty = (GPSDataUncertainty_t) x.second.doppler_uncertainty;
                 ssi->uncertaintyContainer->pseudorangeUncertainty = (GPSDataUncertainty_t) x.second.pseudorange_uncertainty;
@@ -243,10 +251,11 @@ namespace ns3
 
             ASN_SEQUENCE_ADD(&cem->cem.choice.fps.satelliteSignalInfo, ssi);
         }
-
     }
     else if(rawdata.type == GPSRawTraceClient::DIFFERENTIAL_D_FRAME)
     {
+        cem->cem.present = CoopEnhancement_PR_dmf;
+
         // Full precision ID (i.e. ID of the corresponding "I" frame)
         cem->cem.choice.dmf.fullPrecisionID = m_fullPrecisionID;
 
@@ -260,6 +269,7 @@ namespace ns3
         memset(&cemTstamp_I, 0, sizeof(INTEGER_t));
         asn_imax2INTEGER(&cemTstamp_I, rawdata.cemTstamp);
         cem->cem.choice.dmf.cemTstamp = cemTstamp_I;
+        m_ptr_queue.push ((void *) cem->cem.choice.fps.cemTstamp.buf);
 
         for (auto const& x : rawdata.dframe_data)
         {
@@ -319,8 +329,7 @@ namespace ns3
 
     // Free all the previously allocated memory
     // This is IMPORTANT! Do not forget to perform this operation...
-
-    if(cem) free(cem);
+    freeCEM(cem);
 
     return errval;
   }
@@ -330,5 +339,27 @@ namespace ns3
   {
     Simulator::Remove(m_event_cemDisseminationStart);
     return m_cem_sent;
+  }
+
+  void
+  CEBasicService::freeCEM(CEM_t *cem)
+  {
+    while(!m_ptr_queue.empty ())
+      {
+        free(m_ptr_queue.front ());
+        m_ptr_queue.pop();
+      };
+
+    if(cem->cem.present == CoopEnhancement_PR_fps)
+    {
+        ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_SatelliteSignalInfo, &cem->cem.choice.fps.satelliteSignalInfo);
+    }
+    else if(cem->cem.present == CoopEnhancement_PR_dmf)
+    {
+        ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_SatelliteSignalInfo, &cem->cem.choice.dmf.differentialSatelliteSignalInfo);
+    }
+
+    // Main structure
+    if(cem) free(cem);
   }
 }

@@ -21,14 +21,14 @@
 
 #include "ns3/automotive-module.h"
 #include "ns3/gps-tc-module.h"
+#include "ns3/gps-raw-tc-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/wave-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/packet-socket-helper.h"
-#include "ns3/simpleCAMSender-gps-tc.h"
 
 using namespace ns3;
-NS_LOG_COMPONENT_DEFINE("v2v-80211p-gps-tc-example");
+NS_LOG_COMPONENT_DEFINE("v2v-80211p-gps-raw-tc-example");
 
 int
 main (int argc, char *argv[])
@@ -41,8 +41,7 @@ main (int argc, char *argv[])
    * the positioning updates should occur, if possible at least at around 5-10 Hz (1 Hz would not be enough for an effective
    * dynamic frequency management for the CAMs).
    *
-   * In this example the generated vehicles will simply broadcast their CAMs, relying on the application named simpleCAMSender-gps.
-   * 802.11p is used as access technology.
+   * In this example the generated vehicles will broadcast CAMs and CEMs, using 802.11p.
    *
    * If the correct prerequisites for ns-3 PyViz are installed, the user can also see the moving nodes in a GUI by running this
    * example with the "--vis" option.
@@ -55,6 +54,9 @@ main (int argc, char *argv[])
   /*** 0.a App Options ***/
   std::string trace_file_path = "src/gps-tc/examples/GPS-Traces-Sample/";
   std::string gps_trace = "sampletrace.csv";
+
+  std::string raw_trace_file_path = "src/gps-raw-tc/trace-example/GPS-Raw-Traces-Sample/";
+  std::string gps_raw_trace = "multi_constellation_CEM_v3.txt";
 
   bool verbose = false;
   bool realtime = false;
@@ -71,6 +73,9 @@ main (int argc, char *argv[])
   cmd.AddValue ("realtime", "Use the realtime scheduler or not", realtime);
   cmd.AddValue ("trace-folder","Position of GPS trace files",trace_file_path);
   cmd.AddValue ("gps-trace", "Name of the GPS trace file", gps_trace);
+
+  cmd.AddValue ("raw-trace-folder","Position of Raw GNSS data trace files",raw_trace_file_path);
+  cmd.AddValue ("gps-raw-trace", "Name of the Raw GNSS Data trace file", gps_raw_trace);
 
   /* Cmd Line option for 802.11p */
   cmd.AddValue ("tx-power", "OBUs transmission power [dBm]", txPower);
@@ -110,15 +115,25 @@ main (int argc, char *argv[])
   /*** 0.b Read from the GPS Trace and create a GPS Trace Client for each vehicle
   ***/
   NS_LOG_INFO("Reading the .rou file...");
-  std::string path = trace_file_path + gps_trace;
-
   std::map<std::string,GPSTraceClient*> GPSTCMap;
+  std::map<std::string,GPSRawTraceClient*> GPSRawTCMap;
 
   GPSTraceClientHelper GPSTCHelper;
+  GPSRawTraceClientHelper GPSRawTCHelper;
 
   GPSTCHelper.setVerbose(verbose);
 
-  GPSTCMap=GPSTCHelper.createTraceClientsFromCSV(path);
+  std::string path = trace_file_path + gps_trace;
+  GPSTCMap = GPSTCHelper.createTraceClientsFromCSV(path);
+
+  GPSRawTCHelper.setHeaderPresence (false);
+  GPSRawTCHelper.setOneTraceAllVehicles (true);
+
+  // Set an many vehicles for the Raw GPS Data Traces as the vehicles available in the GPS Trace Client traces
+  GPSRawTCHelper.setSingleTraceModeVehicles (GPSTCMap.size ());
+
+  std::string raw_path = raw_trace_file_path + gps_raw_trace;
+  GPSRawTCMap = GPSRawTCHelper.createRawTraceClientsFromCSV (raw_path);
 
   int numberOfNodes=GPSTCMap.size ();
   NS_LOG_INFO("The .rou file has been read: " << numberOfNodes << " vehicles will be present in the simulation.");
@@ -159,13 +174,19 @@ main (int argc, char *argv[])
   mobility.Install (obuNodes);
 
   /*** 7. Setup interface and application for dynamic nodes ***/
-  simpleCAMSenderHelper SimpleCAMSenderHelper;
-  SimpleCAMSenderHelper.SetAttribute ("RealTime", BooleanValue(realtime));
+  simpleCAMSenderCEMHelper SimpleCAMSenderCEMHelper;
+  SimpleCAMSenderCEMHelper.SetAttribute ("RealTime", BooleanValue(realtime));
 
   // Create vector with the GPS Trace Client map values
   std::vector<GPSTraceClient*> v_gps_tc;
   GPS_TC_MAP_ITERATOR(GPSTCMap,GPSTCit) {
     v_gps_tc.push_back (GPS_TC_IT_OBJECT(GPSTCit));
+  }
+
+  // Create vector with the GPS Raw Trace Client map values
+  std::vector<GPSRawTraceClient*> v_raw_gps_tc;
+  GPS_RAW_TC_MAP_ITERATOR(GPSRawTCMap,GPSRawTCit) {
+    v_raw_gps_tc.push_back (GPS_RAW_TC_IT_OBJECT(GPSRawTCit));
   }
 
   /* callback function for node creation */
@@ -178,12 +199,12 @@ main (int argc, char *argv[])
       Ptr<Node> includedNode = obuNodes.Get(nodeCounter);
 
       /* Install Application */
-      SimpleCAMSenderHelper.SetAttribute ("GPSClient", PointerValue(v_gps_tc[nodeCounter]));
-      ApplicationContainer setupAppSimpleSender = SimpleCAMSenderHelper.Install (includedNode);
+      SimpleCAMSenderCEMHelper.SetAttribute ("GPSClient", PointerValue(v_gps_tc[nodeCounter]));
+      SimpleCAMSenderCEMHelper.SetAttribute ("GPSRawClient", PointerValue(v_raw_gps_tc[nodeCounter]));
+      ApplicationContainer setupAppSimpleSender = SimpleCAMSenderCEMHelper.Install (includedNode);
 
       setupAppSimpleSender.Start (Seconds (0.0));
       setupAppSimpleSender.Stop (simulationTime - Simulator::Now () - Seconds (0.1));
-      ++nodeCounter; // increment counter for next node
       return includedNode;
     };
 
@@ -191,7 +212,7 @@ main (int argc, char *argv[])
   std::function<void (Ptr<Node>)> shutdownWifiNode = [] (Ptr<Node> exNode)
     {
       /* stop all applications */
-      Ptr<simpleCAMSender> AppSimpleSender_ = exNode->GetApplication(0)->GetObject<simpleCAMSender>();
+      Ptr<simpleCAMSenderCEM> AppSimpleSender_ = exNode->GetApplication(0)->GetObject<simpleCAMSenderCEM>();
 
       if(AppSimpleSender_)
         AppSimpleSender_->StopApplicationNow();
@@ -203,6 +224,26 @@ main (int argc, char *argv[])
       /* NOTE: further actions could be required for a safe shut down! */
     };
 
+  std::function<Ptr<Node>()> gpsRawStartFcn = [&] () -> Ptr<Node>
+  {
+      Ptr<Node> includedNode = obuNodes.Get(nodeCounter);
+      ++nodeCounter; // increment counter for next node
+      return obuNodes.Get(nodeCounter);
+  };
+
+  std::function<void (Ptr<Node>)> gpsRawEndFcn = [] (Ptr<Node> exNode)
+  {
+    /* stop all applications */
+    Ptr<simpleCAMSenderCEM> AppSimpleSender_ = exNode->GetApplication(0)->GetObject<simpleCAMSenderCEM>();
+
+    if(AppSimpleSender_)
+      AppSimpleSender_->StopApplicationNow();
+
+     /* set position outside communication range */
+    Ptr<ConstantPositionMobilityModel> mob = exNode->GetObject<ConstantPositionMobilityModel>();
+    mob->SetPosition(Vector(-1000.0+(rand()%25),320.0+(rand()%25),250.0));// rand() for visualization purposes
+  };
+
   // Start "playing" the GPS Trace for each vehicle (i.e. make the vehicle start their movements)
   // "Seconds(0)" is specified to "playTrace" to reproduce all the traces since the beginning
   // of the simulation. A different amount of time for all the vehicles or a different amount of time
@@ -210,6 +251,10 @@ main (int argc, char *argv[])
   GPS_TC_MAP_ITERATOR(GPSTCMap,GPSTCit) {
       GPS_TC_IT_OBJECT(GPSTCit)->GPSTraceClientSetup(setupNewWifiNode,shutdownWifiNode);
       GPS_TC_IT_OBJECT(GPSTCit)->playTrace(Seconds(0));
+  }
+
+  GPS_RAW_TC_MAP_ITERATOR (GPSRawTCMap,GPSRawTCit) {
+      GPS_TC_IT_OBJECT(GPSRawTCit)->GPSRawTraceClientSetup(gpsRawStartFcn,gpsRawEndFcn);
   }
 
   /*** 8. Start Simulation ***/
