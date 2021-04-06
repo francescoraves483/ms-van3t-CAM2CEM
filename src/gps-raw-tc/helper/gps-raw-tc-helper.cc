@@ -131,6 +131,11 @@ namespace ns3 {
                   std::istringstream iss(line);
                   result = getNextLineAndSplitIntoTokens(line);
 
+                  if(result.size() < 9)
+                  {
+                      NS_FATAL_ERROR ("Error. Cannot read file " << filepath << ". A line with 9 fields was expected, but only " << result.size() << " were found.");
+                  }
+
                   std::pair<int,int> map_idx = std::pair<int,int>(std::stoi(result[0]),std::stoi(result[1]));
 
                   iframedata[map_idx].pseudorange = std::stod(result[2]);
@@ -162,6 +167,11 @@ namespace ns3 {
                   std::getline(inFile, line);
                   std::istringstream iss(line);
                   result = getNextLineAndSplitIntoTokens(line);
+
+                  if(result.size() < 5)
+                  {
+                      NS_FATAL_ERROR ("Error. Cannot read file " << filepath << ". A line with 5 fields was expected, but only " << result.size() << " were found.");
+                  }
 
                   std::pair<int,int> map_idx = std::pair<int,int>(std::stoi(result[0]),std::stoi(result[1]));
 
