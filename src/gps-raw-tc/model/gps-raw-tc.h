@@ -27,27 +27,27 @@ namespace ns3 {
           } e_frametype;
 
           typedef struct _iframe_data {
-              GDP::satmap<double> pseudorange;
-              GDP::satmap<double> pseudorange_uncertainty;
-              GDP::satmap<int64_t> carrierphase;
-              GDP::satmap<double> carrierphase_uncertainty;
-              GDP::satmap<double> doppler;
-              GDP::satmap<double> doppler_uncertainty;
-              GDP::satmap<long int> signalstrength;
+              double pseudorange;
+              double pseudorange_uncertainty;
+              int64_t carrierphase;
+              double carrierphase_uncertainty;
+              double doppler;
+              double doppler_uncertainty;
+              long int signalstrength;
           } iframe_data_t;
 
           typedef struct _dframe_data {
-              GDP::satmap<double> differential_pseudorange;
-              GDP::satmap<double> differential_carrierphase;
-              GDP::satmap<double> differential_doppler;
+              double differential_pseudorange;
+              double differential_carrierphase;
+              double differential_doppler;
           } dframe_data_t;
 
           typedef struct _raw_positioning_data {
               e_frametype type;
               uint64_t cemTstamp;
 
-              iframe_data_t iframe_data;
-              dframe_data_t dframe_data;
+              GDP::satmap<iframe_data_t> iframe_data;
+              GDP::satmap<dframe_data_t> dframe_data;
 
               // To order the vector according to "cemTstamp"
               bool operator < (const _raw_positioning_data& str) const
@@ -62,8 +62,8 @@ namespace ns3 {
           void printDebugRawData();
 
           // Setter
-          void setNewIFrame(uint64_t cemTstamp,iframe_data_t data);
-          void setNewDFrame(uint64_t cemTstamp,dframe_data_t data);
+          void setNewIFrame(uint64_t cemTstamp,GDP::satmap<iframe_data_t> data);
+          void setNewDFrame(uint64_t cemTstamp,GDP::satmap<dframe_data_t> data);
 
           // Getter
           raw_positioning_data_t getLastFrameData();

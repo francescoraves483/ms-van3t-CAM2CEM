@@ -175,7 +175,6 @@ namespace ns3
 
     asn_encode_to_new_buffer_result_t encode_result={.buffer=NULL};
 
-    // ... perform here the needed operations ...
     cem=(CEM_t*) calloc(1, sizeof(CEM_t));
     if(cem==NULL)
     {
@@ -188,21 +187,59 @@ namespace ns3
     cem->header.stationID = m_station_id;
 
     /* Construct CAM and pass it to the lower layers (now UDP, in the future BTP and GeoNetworking, then UDP) */
+    // CONVERSIONS ARE STILL MISSING
     if(rawdata.type == GPSRawTraceClient::FULL_PRECISION_I_FRAME)
     {
+        // Full precision ID
+        cem->cem.choice.fps.fullPrecisionID = m_fullPrecisionID;
+
+        m_fullPrecisionID = (m_fullPrecisionID + 1) % (m_fullPrecisionIDMax + 1);
+        m_differentialID = 0;
+
         // CEM timestamp
         INTEGER_t cemTstamp_I;
         memset(&cemTstamp_I, 0, sizeof(INTEGER_t));
         asn_imax2INTEGER(&cemTstamp_I, rawdata.cemTstamp);
         cem->cem.choice.fps.cemTstamp = cemTstamp_I;
 
-        for (auto const& x : rawdata.iframe_data.pseudorange)
+        for (auto const& x : rawdata.iframe_data)
         {
             SatelliteSignalInfo_t *ssi = reinterpret_cast<SatelliteSignalInfo_t *>(calloc(1, sizeof(SatelliteSignalInfo_t *)));
 
             // Fill in the satellite signal info data for this satellite and signal ...
+
+            // Mandatory Container
             ssi->mandatoryContainer.signalID = x.first.second;
             ssi->mandatoryContainer.satellitePRN = x.first.first;
+
+            INTEGER_t pseudorange_I;
+            memset(&pseudorange_I, 0, sizeof(INTEGER_t));
+            asn_imax2INTEGER(&pseudorange_I, x.second.pseudorange);
+            ssi->mandatoryContainer.pseudorange = pseudorange_I;
+
+            // Optional Container
+            ssi->optionalContainer = (OptionalContainer_t *)calloc(1,sizeof(OptionalContainer_t));
+            ssi->optionalContainer->doppler = (Doppler_t) x.second.doppler;
+
+            INTEGER_t carrierphase_I;
+            memset(&carrierphase_I, 0, sizeof(INTEGER_t));
+            asn_imax2INTEGER(&carrierphase_I, x.second.carrierphase);
+            ssi->optionalContainer->carrierPhase = carrierphase_I;
+
+            ssi->optionalContainer->signalStrength = (SignalStrength_t) x.second.signalstrength;
+
+            // Uncertainty Container
+            // This container is inserted only if at least one uncertainty value is available
+            if(x.second.doppler_uncertainty != GPSDataUncertainty_unavailable ||
+               x.second.pseudorange_uncertainty != GPSDataUncertainty_unavailable ||
+               x.second.carrierphase_uncertainty != GPSDataUncertainty_unavailable) {
+
+                ssi->uncertaintyContainer = (UncertaintyContainer_t *)calloc(1,sizeof(UncertaintyContainer_t));
+
+                ssi->uncertaintyContainer->dopplerUncertainty = (GPSDataUncertainty_t) x.second.doppler_uncertainty;
+                ssi->uncertaintyContainer->pseudorangeUncertainty = (GPSDataUncertainty_t) x.second.pseudorange_uncertainty;
+                ssi->uncertaintyContainer->carrierPhaseUncertainty = (GPSDataUncertainty_t) x.second.carrierphase_uncertainty;
+            }
 
             ASN_SEQUENCE_ADD(&cem->cem.choice.fps.satelliteSignalInfo, ssi);
         }
@@ -210,11 +247,34 @@ namespace ns3
     }
     else if(rawdata.type == GPSRawTraceClient::DIFFERENTIAL_D_FRAME)
     {
+        // Full precision ID (i.e. ID of the corresponding "I" frame)
+        cem->cem.choice.dmf.fullPrecisionID = m_fullPrecisionID;
+
+        // Differential ID
+        cem->cem.choice.dmf.differentialID = m_differentialID;
+
+        m_differentialID = (m_differentialID + 1) % (m_differentialIDMax + 1);
+
         // CEM timestamp
         INTEGER_t cemTstamp_I;
         memset(&cemTstamp_I, 0, sizeof(INTEGER_t));
         asn_imax2INTEGER(&cemTstamp_I, rawdata.cemTstamp);
         cem->cem.choice.dmf.cemTstamp = cemTstamp_I;
+
+        for (auto const& x : rawdata.dframe_data)
+        {
+            DifferentialSatelliteSignalInfo *dssi = reinterpret_cast<DifferentialSatelliteSignalInfo *>(calloc(1, sizeof(DifferentialSatelliteSignalInfo *)));
+
+            // Differential Mandatory Container
+            dssi->differentialMandatoryContainer.differentialPseudorange = (DifferentialPseudorange_t) x.second.differential_pseudorange;
+
+            // Differential Optional Container
+            dssi->differentialOptionalContainer = (DifferentialOptionalContainer_t *)calloc(1,sizeof(DifferentialOptionalContainer_t));
+            dssi->differentialOptionalContainer->differentialDoppler = (DifferentialDoppler_t) x.second.differential_doppler;
+            dssi->differentialOptionalContainer->differentialCarrierPhase = (DifferentialCarrierPhase_t) x.second.differential_carrierphase;
+
+            ASN_SEQUENCE_ADD(&cem->cem.choice.dmf.differentialSatelliteSignalInfo, dssi);
+        }
     }
 
     /** Encoding **/

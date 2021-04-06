@@ -121,7 +121,7 @@ namespace ns3 {
 
           // Full precision interframe
           if(result[0 + shift_idx]=="I") {
-              GPSRawTraceClient::iframe_data_t iframedata;
+              GDP::satmap<GPSRawTraceClient::iframe_data_t> iframedata;
 
               long numrows = stol(result[2 + shift_idx]);
               // Read the current "I" frame data
@@ -133,13 +133,13 @@ namespace ns3 {
 
                   std::pair<int,int> map_idx = std::pair<int,int>(std::stoi(result[0]),std::stoi(result[1]));
 
-                  iframedata.pseudorange[map_idx] = std::stod(result[2]);
-                  iframedata.pseudorange_uncertainty[map_idx] = std::stod(result[3]);
-                  iframedata.carrierphase[map_idx] = std::stod(result[4]);
-                  iframedata.carrierphase_uncertainty[map_idx] = std::stod(result[5]);
-                  iframedata.doppler[map_idx] = std::stod(result[6]);
-                  iframedata.doppler_uncertainty[map_idx] = std::stod(result[7]);
-                  iframedata.signalstrength[map_idx] = std::stod(result[8]);
+                  iframedata[map_idx].pseudorange = std::stod(result[2]);
+                  iframedata[map_idx].pseudorange_uncertainty = std::stod(result[3]);
+                  iframedata[map_idx].carrierphase = std::stod(result[4]);
+                  iframedata[map_idx].carrierphase_uncertainty = std::stod(result[5]);
+                  iframedata[map_idx].doppler = std::stod(result[6]);
+                  iframedata[map_idx].doppler_uncertainty = std::stod(result[7]);
+                  iframedata[map_idx].signalstrength = std::stod(result[8]);
               }
 
               for(int i=0;m_singletrace == true && i<m_numVehicles;i++) {
@@ -152,7 +152,7 @@ namespace ns3 {
           // Differential intra-frame
           } else if(result[0]=="D") {
               // Read the current "D" frame data
-              GPSRawTraceClient::dframe_data_t dframedata;
+              GDP::satmap<GPSRawTraceClient::dframe_data_t> dframedata;
 
               long numrows = stol(result[2 + shift_idx]);
 
@@ -165,9 +165,9 @@ namespace ns3 {
 
                   std::pair<int,int> map_idx = std::pair<int,int>(std::stoi(result[0]),std::stoi(result[1]));
 
-                  dframedata.differential_pseudorange[map_idx] = std::stod(result[2]);
-                  dframedata.differential_carrierphase[map_idx] = std::stod(result[3]);
-                  dframedata.differential_doppler[map_idx] = std::stod(result[4]);
+                  dframedata[map_idx].differential_pseudorange = std::stod(result[2]);
+                  dframedata[map_idx].differential_carrierphase = std::stod(result[3]);
+                  dframedata[map_idx].differential_doppler = std::stod(result[4]);
               }
 
               for(int i=0;m_singletrace == true && i<m_numVehicles;i++) {

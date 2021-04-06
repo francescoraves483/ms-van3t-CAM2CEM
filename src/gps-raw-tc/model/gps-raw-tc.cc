@@ -37,8 +37,7 @@ namespace ns3
       m_endTrace=nullptr;
       m_vehNode=NULL;
       m_vehID=vehID;
-      m_iframe_callback=nullptr;
-      m_dframe_callback=nullptr;
+      m_frame_callback=nullptr;
   }
 
   GPSRawTraceClient::~GPSRawTraceClient()
@@ -46,8 +45,7 @@ namespace ns3
       m_lastvehicledataidx=0;
       m_startTrace=nullptr;
       m_endTrace=nullptr;
-      m_iframe_callback=nullptr;
-      m_dframe_callback=nullptr;
+      m_frame_callback=nullptr;
   }
 
   std::string
@@ -57,7 +55,7 @@ namespace ns3
   }
 
   void
-  GPSRawTraceClient::setNewIFrame(uint64_t cemTstamp,iframe_data_t data)
+  GPSRawTraceClient::setNewIFrame(uint64_t cemTstamp,GDP::satmap<iframe_data_t> data)
   {
       vehiclesdata[vehiclesdata.size()-1].type = FULL_PRECISION_I_FRAME;
       vehiclesdata[vehiclesdata.size()-1].cemTstamp = cemTstamp;
@@ -65,7 +63,7 @@ namespace ns3
   }
 
   void
-  GPSRawTraceClient::setNewDFrame(uint64_t cemTstamp,dframe_data_t data)
+  GPSRawTraceClient::setNewDFrame(uint64_t cemTstamp,GDP::satmap<dframe_data_t> data)
   {
       vehiclesdata[vehiclesdata.size()-1].type = DIFFERENTIAL_D_FRAME;
       vehiclesdata[vehiclesdata.size()-1].cemTstamp = cemTstamp;
@@ -90,9 +88,9 @@ namespace ns3
       std::cout << "Number of raw data element (I+D frames): " << vehiclesdata.size() << std::endl;
       for (unsigned int i=0; i<vehiclesdata.size(); i++) {
           if(vehiclesdata[i].type == FULL_PRECISION_I_FRAME) {
-              std::cout << "Full-precision interframe @ " << std::setprecision(12) << vehiclesdata[i].cemTstamp << " - number of satellites/signals (looking at pseudorange): " << vehiclesdata[i].iframe_data.pseudorange.size () << std::endl;
+              std::cout << "Full-precision interframe @ " << std::setprecision(12) << vehiclesdata[i].cemTstamp << " - number of satellites/signals: " << vehiclesdata[i].iframe_data.size () << std::endl;
           } else if(vehiclesdata[i].type == DIFFERENTIAL_D_FRAME) {
-              std::cout << "Differential frame @ " << std::setprecision(12) << vehiclesdata[i].cemTstamp << " - number of satellites/signals (looking at differential pseudorange): " << vehiclesdata[i].dframe_data.differential_pseudorange.size () << std::endl;
+              std::cout << "Differential frame @ " << std::setprecision(12) << vehiclesdata[i].cemTstamp << " - number of satellites/signals: " << vehiclesdata[i].dframe_data.size () << std::endl;
           } else {
               std::cerr << "Error: unknown frame @ " << std::setprecision(12) << vehiclesdata[i].cemTstamp << std::endl;
           }
@@ -109,9 +107,9 @@ namespace ns3
   void
   GPSRawTraceClient::playTrace(Time const &delay)
   {
-    if(m_iframe_callback == nullptr || m_dframe_callback == nullptr)
+    if(m_frame_callback == nullptr)
     {
-        NS_FATAL_ERROR ("Error: attempted to start a GPS Raw Data Trace Client without specifying the I and D frames callbacks");
+        NS_FATAL_ERROR ("Error: attempted to start a GPS Raw Data Trace Client without specifying any frame callback");
     }
 
     Simulator::Schedule(delay, &GPSRawTraceClient::CreateNode, this);
