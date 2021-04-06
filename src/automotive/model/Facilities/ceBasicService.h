@@ -8,6 +8,7 @@
 #include "ns3/asn_utils.h"
 #include "ns3/btp.h"
 #include "ns3/btpHeader.h"
+#include "ns3/gps-raw-tc.h"
 
 namespace ns3
 {
@@ -24,10 +25,10 @@ namespace ns3
   {
   public:
     CEBasicService();
-    CEBasicService(unsigned long fixed_stationid,long fixed_stationtype,VDP* vdp,GDP *gdp,bool real_time);
-    CEBasicService(unsigned long fixed_stationid,long fixed_stationtype,VDP* vdp,GDP *gdp,bool real_time,Ptr<Socket> socket_tx);
+    CEBasicService(unsigned long fixed_stationid, long fixed_stationtype, bool real_time);
+    CEBasicService(unsigned long fixed_stationid, long fixed_stationtype, bool real_time, Ptr<Socket> socket_tx);
 
-    void setGDP(GDP *gdp) {m_gdp=gdp;}
+    // void setGDP(GDP *gdp) {m_gdp=gdp;}
 
     void setStationProperties(unsigned long fixed_stationid,long fixed_stationtype);
     void setFixedPositionRSU(double latitude_deg, double longitude_deg);
@@ -35,7 +36,8 @@ namespace ns3
     void setStationType(long fixed_stationtype);
     void setSocketTx(Ptr<Socket> socket_tx) {m_btp->setSocketTx (socket_tx);}
     void setSocketRx(Ptr<Socket> socket_rx);
-    void setVDP(VDP* vdp) {m_vdp=vdp;}
+    // void setVDP(VDP* vdp) {m_vdp=vdp;}
+    void setGPSRawTraceClient(Ptr<GPSRawTraceClient> gps_raw_trace_client) {m_gps_raw_trace_client=gps_raw_trace_client;}
     void setBTP(Ptr<btp> btp){m_btp=btp;}
 
     void receiveCem(BTPDataIndication_t dataIndication, Address from);
@@ -48,19 +50,23 @@ namespace ns3
     uint64_t terminateDissemination();
 
   private:
-    const int m_T_FixedGenCemHz=10; // CEM generation frequency ([Hz])
-    double m_T_FixedGenCemMs; // Computed by CE Basic Service from m_T_FixedGenCemHz
+    const int m_fullPrecisionIDMax = 65535;
+    const int m_differentialIDMax = 8;
 
-    void initDissemination();
-    CEBasicService_error_t generateAndEncodeCem();
+    void frameCallback(GPSRawTraceClient::raw_positioning_data_t raw_frame_data);
+
+    CEBasicService_error_t generateAndEncodeCem(GPSRawTraceClient::raw_positioning_data_t rawdata);
 
     std::function<void(CEM_t *, Address)> m_CEReceiveCallback;
 
     Ptr<btp> m_btp;
 
     bool m_real_time;
-    VDP* m_vdp; // Vehicle Data Provider (GN)
-    GDP* m_gdp; // GNSS Data Provider (CEM)
+    // VDP* m_vdp; // Vehicle Data Provider (GN)
+    // GDP* m_gdp; // GNSS Data Provider (CEM)
+    bool m_dissemination_started;
+
+    Ptr<GPSRawTraceClient> m_gps_raw_trace_client;
 
     Ptr<Socket> m_socket_tx; // Socket TX
 
@@ -74,7 +80,8 @@ namespace ns3
     // ns-3 event IDs used to properly stop the simulation with terminateDissemination()
     EventId m_event_cemDisseminationStart;
 
-
+    int m_fullPrecisionID;
+    int m_differentialID;
   };
 }
 

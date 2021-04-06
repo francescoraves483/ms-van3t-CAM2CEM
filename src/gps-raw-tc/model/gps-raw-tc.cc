@@ -37,6 +37,8 @@ namespace ns3
       m_endTrace=nullptr;
       m_vehNode=NULL;
       m_vehID=vehID;
+      m_iframe_callback=nullptr;
+      m_dframe_callback=nullptr;
   }
 
   GPSRawTraceClient::~GPSRawTraceClient()
@@ -44,6 +46,8 @@ namespace ns3
       m_lastvehicledataidx=0;
       m_startTrace=nullptr;
       m_endTrace=nullptr;
+      m_iframe_callback=nullptr;
+      m_dframe_callback=nullptr;
   }
 
   std::string
@@ -105,6 +109,11 @@ namespace ns3
   void
   GPSRawTraceClient::playTrace(Time const &delay)
   {
+    if(m_iframe_callback == nullptr || m_dframe_callback == nullptr)
+    {
+        NS_FATAL_ERROR ("Error: attempted to start a GPS Raw Data Trace Client without specifying the I and D frames callbacks");
+    }
+
     Simulator::Schedule(delay, &GPSRawTraceClient::CreateNode, this);
   }
 
@@ -140,6 +149,8 @@ namespace ns3
 
         return;
       }
+
+    m_frame_callback(getLastFrameData());
 
     m_event_updaterawdata=Simulator::Schedule(MicroSeconds (vehiclesdata[m_lastvehicledataidx+1].cemTstamp-vehiclesdata[m_lastvehicledataidx].cemTstamp), &GPSRawTraceClient::UpdateRawData, this);
   }

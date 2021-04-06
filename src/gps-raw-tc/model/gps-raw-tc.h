@@ -78,6 +78,12 @@ namespace ns3 {
           // Stop "playing" the trace
           void StopUpdates();
 
+          // Function to set the callbacks to be called when new data for an "I" or "D" packet is available
+          void setFrameCallback(std::function<void(raw_positioning_data_t)> frame_callback)
+          {
+            m_frame_callback=frame_callback;
+          }
+
       private:
           std::vector<raw_positioning_data_t> vehiclesdata;
           long unsigned int m_lastvehicledataidx;
@@ -94,6 +100,9 @@ namespace ns3 {
 
           void CreateNode(void);
           void UpdatePositions(void);
+
+          // New data available callback
+          std::function<void(raw_positioning_data_t)> m_frame_callback;
   };
 
 

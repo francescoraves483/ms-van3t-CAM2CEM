@@ -34,23 +34,26 @@ namespace ns3
     m_real_time=false;
 
     m_cem_sent=0;
-    m_T_FixedGenCemMs=1000/m_T_FixedGenCemHz;
+
+    m_dissemination_started=false;
+
+    m_fullPrecisionID = 0;
+    m_differentialID = 0;
   }
 
-  CEBasicService::CEBasicService(unsigned long fixed_stationid,long fixed_stationtype,VDP* vdp,GDP *gdp,bool real_time)
+  CEBasicService::CEBasicService(unsigned long fixed_stationid,long fixed_stationtype,bool real_time)
   {
     CEBasicService();
     m_station_id = (StationID_t) fixed_stationid;
     m_stationtype = (StationType_t) fixed_stationtype;
-
-    m_vdp=vdp;
-    m_gdp=gdp;
+//    m_vdp=vdp;
+//    m_gdp=gdp;
     m_real_time=real_time;
   }
 
-  CEBasicService::CEBasicService(unsigned long fixed_stationid,long fixed_stationtype,VDP* vdp,GDP *gdp,bool real_time,Ptr<Socket> socket_tx)
+  CEBasicService::CEBasicService(unsigned long fixed_stationid,long fixed_stationtype,bool real_time,Ptr<Socket> socket_tx)
   {
-    CEBasicService(fixed_stationid,fixed_stationtype,vdp,gdp,real_time);
+    CEBasicService(fixed_stationid,fixed_stationtype,real_time);
 
     m_socket_tx=socket_tx;
   }
@@ -93,13 +96,31 @@ namespace ns3
   void
   CEBasicService::startCemDissemination()
   {
-    m_event_cemDisseminationStart = Simulator::Schedule (Seconds(0), &CEBasicService::initDissemination, this);
+    if(m_dissemination_started == true)
+    {
+      NS_FATAL_ERROR("Error: attempting to start an already started CEM dissemination");
+    }
+
+    m_gps_raw_trace_client->playTrace (Seconds(0));
+    m_dissemination_started = true;
   }
 
   void
   CEBasicService::startCemDissemination(double desync_s)
   {
-    m_event_cemDisseminationStart = Simulator::Schedule (Seconds (desync_s), &CEBasicService::initDissemination, this);
+    if(m_dissemination_started == true)
+    {
+      NS_FATAL_ERROR("Error: attempting to start an already started CEM dissemination");
+    }
+
+    m_gps_raw_trace_client->playTrace (Seconds(desync_s));
+    m_dissemination_started = true;
+  }
+
+  void
+  CEBasicService::frameCallback(GPSRawTraceClient::raw_positioning_data_t raw_frame_data)
+  {
+    generateAndEncodeCem(raw_frame_data);
   }
 
   void
@@ -142,18 +163,10 @@ namespace ns3
     m_CEReceiveCallback(decoded_cem,from);
   }
 
-  void
-  CEBasicService::initDissemination()
-  {
-    generateAndEncodeCem();
-    m_event_cemDisseminationStart = Simulator::Schedule (MilliSeconds(m_T_FixedGenCemMs), &CEBasicService::initDissemination, this);
-  }
-
   CEBasicService_error_t
-  CEBasicService::generateAndEncodeCem()
+  CEBasicService::generateAndEncodeCem(GPSRawTraceClient::raw_positioning_data_t rawdata)
   {
     CEM_t *cem;
-    GDP::satmap<GDP::CEM_mandatory_data_t> cem_mandatory_data;
     CEBasicService_error_t errval=CEM_NO_ERROR;
 
     Ptr<Packet> packet;
@@ -162,18 +175,12 @@ namespace ns3
 
     asn_encode_to_new_buffer_result_t encode_result={.buffer=NULL};
 
-    /* Collect data for mandatory containers */
     // ... perform here the needed operations ...
     cem=(CEM_t*) calloc(1, sizeof(CEM_t));
     if(cem==NULL)
-      {
-        return CEM_ALLOC_ERROR;
-      }
-
-    // This variable is then unused, for the time being...
-    // The map returned by getCEMMandatoryData() should then be used to fill in the mandatory
-    // fields of each frame, for each satellite (n) and signal (k)
-    cem_mandatory_data=m_gdp->getCEMMandatoryData ();
+    {
+      return CEM_ALLOC_ERROR;
+    }
 
     /* Fill the header */
     cem->header.messageID = messageID_cem;
@@ -181,6 +188,35 @@ namespace ns3
     cem->header.stationID = m_station_id;
 
     /* Construct CAM and pass it to the lower layers (now UDP, in the future BTP and GeoNetworking, then UDP) */
+    if(rawdata.type == GPSRawTraceClient::FULL_PRECISION_I_FRAME)
+    {
+        // CEM timestamp
+        INTEGER_t cemTstamp_I;
+        memset(&cemTstamp_I, 0, sizeof(INTEGER_t));
+        asn_imax2INTEGER(&cemTstamp_I, rawdata.cemTstamp);
+        cem->cem.choice.fps.cemTstamp = cemTstamp_I;
+
+        for (auto const& x : rawdata.iframe_data.pseudorange)
+        {
+            SatelliteSignalInfo_t *ssi = reinterpret_cast<SatelliteSignalInfo_t *>(calloc(1, sizeof(SatelliteSignalInfo_t *)));
+
+            // Fill in the satellite signal info data for this satellite and signal ...
+            ssi->mandatoryContainer.signalID = x.first.second;
+            ssi->mandatoryContainer.satellitePRN = x.first.first;
+
+            ASN_SEQUENCE_ADD(&cem->cem.choice.fps.satelliteSignalInfo, ssi);
+        }
+
+    }
+    else if(rawdata.type == GPSRawTraceClient::DIFFERENTIAL_D_FRAME)
+    {
+        // CEM timestamp
+        INTEGER_t cemTstamp_I;
+        memset(&cemTstamp_I, 0, sizeof(INTEGER_t));
+        asn_imax2INTEGER(&cemTstamp_I, rawdata.cemTstamp);
+        cem->cem.choice.dmf.cemTstamp = cemTstamp_I;
+    }
+
     /** Encoding **/
     char errbuff[ERRORBUFF_LEN];
     size_t errlen=sizeof(errbuff);
