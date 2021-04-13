@@ -26,7 +26,7 @@ Pseudorange_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
 		return -1;
 	}
 	
-	if((value >= 1800000000 && value <= 2900000001)) {
+	if((value >= 1800000000 && value <= 5900000001)) {
 		/* Constraint check succeeded */
 		return 0;
 	} else {
@@ -45,7 +45,7 @@ static asn_oer_constraints_t asn_OER_type_Pseudorange_constr_1 CC_NOTUSED = {
 	{ 4, 1 }	/* (1800000000..2900000001) */,
 	-1};
 asn_per_constraints_t asn_PER_type_Pseudorange_constr_1 CC_NOTUSED = {
-	{ APC_CONSTRAINED,	 31, -1,  1800000000,  2900000001 }	/* (1800000000..2900000001) */,
+	{ APC_CONSTRAINED,	 31, -1,  1800000000,  5900000001 }	/* (1800000000..2900000001) */,
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
 	0, 0	/* No PER value map */
 };

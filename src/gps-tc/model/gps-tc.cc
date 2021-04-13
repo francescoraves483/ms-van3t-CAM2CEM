@@ -264,6 +264,7 @@ namespace ns3
       }
 
     mob->SetPosition(Vector(vehiclesdata[m_lastvehicledataidx].tm_x,vehiclesdata[m_lastvehicledataidx].tm_y,1.5));
+
     if(m_lastvehicledataidx+1==vehiclesdata.size())
       {
         m_excludeNode(m_vehNode);

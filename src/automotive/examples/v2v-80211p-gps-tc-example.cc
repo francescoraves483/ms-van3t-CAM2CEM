@@ -198,7 +198,7 @@ main (int argc, char *argv[])
 
        /* set position outside communication range */
       Ptr<ConstantPositionMobilityModel> mob = exNode->GetObject<ConstantPositionMobilityModel>();
-      mob->SetPosition(Vector(-1000.0+(rand()%25),320.0+(rand()%25),250.0));// rand() for visualization purposes
+      mob->SetPosition(Vector(-1000.0,320.0,250.0)); // rand() for visualization purposes
 
       /* NOTE: further actions could be required for a safe shut down! */
     };

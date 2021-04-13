@@ -60,6 +60,9 @@ private:
   int m_cam_sent;
 
   bool m_app_stopped;
+
+  int m_rx_cem;
+  int m_rx_cam;
 };
 
 } // namespace ns3

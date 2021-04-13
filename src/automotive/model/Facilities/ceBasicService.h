@@ -37,7 +37,7 @@ namespace ns3
     void setSocketTx(Ptr<Socket> socket_tx) {m_btp->setSocketTx (socket_tx);}
     void setSocketRx(Ptr<Socket> socket_rx);
     // void setVDP(VDP* vdp) {m_vdp=vdp;}
-    void setGPSRawTraceClient(Ptr<GPSRawTraceClient> gps_raw_trace_client) {m_gps_raw_trace_client=gps_raw_trace_client;}
+    void setGPSRawTraceClient(Ptr<GPSRawTraceClient> gps_raw_trace_client);
     void setBTP(Ptr<btp> btp){m_btp=btp;}
 
     void receiveCem(BTPDataIndication_t dataIndication, Address from);
@@ -52,6 +52,12 @@ namespace ns3
   private:
     const int m_fullPrecisionIDMax = 65535;
     const int m_differentialIDMax = 8;
+    const double cemTimestampMultiplier = 1e10;
+    const long pseudoRangeMultiplier = 1e2;
+    const long carrierPhaseMultiplier = 1e2;
+    const long differentialPseudoRangeMultiplier = 1e2;
+    const long signalStrenghtUpperLim = 200;
+    const long signalStrenghtLowerLim = 0;
 
     void frameCallback(GPSRawTraceClient::raw_positioning_data_t raw_frame_data);
     void freeCEM(CEM_t *cem);

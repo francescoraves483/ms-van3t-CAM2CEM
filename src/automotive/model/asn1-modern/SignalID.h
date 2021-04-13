@@ -11,7 +11,7 @@
 #include "asn_application.h"
 
 /* Including external dependencies */
-#include "NativeEnumerated.h"
+#include "NativeInteger.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,7 +42,6 @@ typedef long	 SignalID_t;
 /* Implementation */
 extern asn_per_constraints_t asn_PER_type_SignalID_constr_1;
 extern asn_TYPE_descriptor_t asn_DEF_SignalID;
-extern const asn_INTEGER_specifics_t asn_SPC_SignalID_specs_1;
 asn_struct_free_f SignalID_free;
 asn_struct_print_f SignalID_print;
 asn_constr_check_f SignalID_constraint;

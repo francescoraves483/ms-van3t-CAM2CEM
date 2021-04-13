@@ -29,7 +29,6 @@
 #include "ns3/network-module.h"
 #include "ns3/gn-utils.h"
 
-
 namespace ns3
 {
   NS_LOG_COMPONENT_DEFINE("simpleCAMSenderCEM");
@@ -70,6 +69,9 @@ namespace ns3
     m_app_stopped = false;
 
     m_cam_sent = 0;
+
+    m_rx_cem = 0;
+    m_rx_cam = 0;
   }
 
   simpleCAMSenderCEM::~simpleCAMSenderCEM ()
@@ -109,6 +111,7 @@ namespace ns3
     m_btp->setGeoNet(m_geoNet);
     m_denService.setBTP(m_btp);
     m_caService.setBTP(m_btp);
+    m_ceService.setBTP(m_btp);
 
     /* Create the socket for TX and RX */
     TypeId tid = TypeId::LookupByName ("ns3::PacketSocketFactory");
@@ -158,12 +161,12 @@ namespace ns3
     m_ceService.setGPSRawTraceClient(m_gps_raw_tc_client);
 
     /* Schedule CAM dissemination */
-    std::srand(Simulator::Now().GetNanoSeconds ());
+    std::srand(std::hash<std::string>()(m_id));
     double desync = ((double)std::rand()/RAND_MAX);
     m_caService.startCamDissemination(desync);
 
     /* Schedule CEM dissemination (which will also start, in turn, the GPS Raw Trace Client Data dissemination */
-    m_ceService.startCemDissemination ();
+    m_ceService.startCemDissemination (desync/1e2);
   }
 
   void
@@ -185,6 +188,9 @@ namespace ns3
                 << " has sent " << cam_sent
                 << " CAMs and " << cem_sent
                 << " CEMs" << std::endl;
+
+      std::cout << "Vehicle " << m_id
+                << " has received " << m_rx_cem << " CEMs and " << m_rx_cam << " CAMs." << std::endl;
     }
 
     m_app_stopped = true;
@@ -206,6 +212,8 @@ namespace ns3
             <<" | Remote vehicle position: ("<<(double)cam->cam.camParameters.basicContainer.referencePosition.latitude/DOT_ONE_MICRO<<","
             <<(double)cam->cam.camParameters.basicContainer.referencePosition.longitude/DOT_ONE_MICRO<<")"<<std::endl;
 
+    m_rx_cam++;
+
     // Free the received CAM data structure
     ASN_STRUCT_FREE(asn_DEF_CAM,cam);
   }
@@ -214,7 +222,7 @@ namespace ns3
   simpleCAMSenderCEM::receiveCEM (CEM_t *cem, Address from)
   {
     /* Implement CEM strategy here */
-    std::cout << "Received a new CEM. Type: ";
+    std::cout << "[ " << m_id << "] Received a new CEM from " << cem->header.stationID << ". Type: ";
 
     if(cem->cem.present == CoopEnhancement_PR_fps)
     {
@@ -229,8 +237,10 @@ namespace ns3
         std::cout << "unknown (error occurred)" << std::endl;
     }
 
+    m_rx_cem++;
+
     // Free the received CEM data structure
-    ASN_STRUCT_FREE(asn_DEF_CAM,cem);
+    ASN_STRUCT_FREE(asn_DEF_CEM,cem);
   }
 
   void

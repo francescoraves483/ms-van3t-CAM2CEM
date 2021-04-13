@@ -21,7 +21,7 @@ extern "C" {
 typedef enum Pseudorange {
 	Pseudorange_oneCentiMeter	= 1,
 	Pseudorange_oneMeter	= 100,
-	Pseudorange_unavailable	= 2900000001
+	Pseudorange_unavailable	= 5900000001
 } e_Pseudorange;
 
 /* Pseudorange */

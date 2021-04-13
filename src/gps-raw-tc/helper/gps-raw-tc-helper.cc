@@ -66,6 +66,7 @@ namespace ns3 {
       std::vector<std::string> result;
       uint8_t shift_idx = 0;
       double currentGNSStimestamp;
+      double currentAbsolutetimestamp;
 
       // Variables to scan each row of the file
       std::string currentVehId;
@@ -102,6 +103,7 @@ namespace ns3 {
           result = getNextLineAndSplitIntoTokens(line);
 
           currentGNSStimestamp = 0;
+          currentAbsolutetimestamp = 0;
 
           // Get the vehicle id (if m_singletrace is not 'false')
           if(m_singletrace == false) {
@@ -117,13 +119,14 @@ namespace ns3 {
               m_GPSRawTraceClient.insert(std::make_pair(currentVehId, gpsrawclient));
           }
 
-          currentGNSStimestamp = std::stod(result[1 + shift_idx]);
+          currentGNSStimestamp = std::stod(result[2 + shift_idx]);
+          currentAbsolutetimestamp = std::stod(result[1 + shift_idx]);
 
           // Full precision interframe
           if(result[0 + shift_idx]=="I") {
               GDP::satmap<GPSRawTraceClient::iframe_data_t> iframedata;
 
-              long numrows = stol(result[2 + shift_idx]);
+              long numrows = stol(result[3 + shift_idx]);
               // Read the current "I" frame data
               for(int i=0;i<numrows;i++)
               {
@@ -136,7 +139,7 @@ namespace ns3 {
                       NS_FATAL_ERROR ("Error. Cannot read file " << filepath << ". A line with 9 fields was expected, but only " << result.size() << " were found.");
                   }
 
-                  std::pair<int,int> map_idx = std::pair<int,int>(std::stoi(result[0]),std::stoi(result[1]));
+                  std::pair<int,int> map_idx = std::pair<int,int>(std::stoi(result[1]),std::stoi(result[0]));
 
                   iframedata[map_idx].pseudorange = std::stod(result[2]);
                   iframedata[map_idx].pseudorange_uncertainty = std::stod(result[3]);
@@ -144,22 +147,22 @@ namespace ns3 {
                   iframedata[map_idx].carrierphase_uncertainty = std::stod(result[5]);
                   iframedata[map_idx].doppler = std::stod(result[6]);
                   iframedata[map_idx].doppler_uncertainty = std::stod(result[7]);
-                  iframedata[map_idx].signalstrength = std::stod(result[8]);
+                  iframedata[map_idx].signalstrength = std::stol (result[8]);
               }
 
               for(int i=0;m_singletrace == true && i<m_numVehicles;i++) {
-                  m_GPSRawTraceClient[std::to_string(i)]->setNewIFrame(currentGNSStimestamp,iframedata);
+                  m_GPSRawTraceClient[std::to_string(i)]->setNewIFrame(currentGNSStimestamp,currentAbsolutetimestamp,iframedata);
               }
 
               if(m_singletrace == false) {
-                  m_GPSRawTraceClient[currentVehId]->setNewIFrame(currentGNSStimestamp,iframedata);
+                  m_GPSRawTraceClient[currentVehId]->setNewIFrame(currentGNSStimestamp,currentAbsolutetimestamp,iframedata);
               }
           // Differential intra-frame
           } else if(result[0]=="D") {
               // Read the current "D" frame data
               GDP::satmap<GPSRawTraceClient::dframe_data_t> dframedata;
 
-              long numrows = stol(result[2 + shift_idx]);
+              long numrows = stol(result[3 + shift_idx]);
 
               // Read the current "D" frame data
               for(int i=0;i<numrows;i++)
@@ -173,7 +176,7 @@ namespace ns3 {
                       NS_FATAL_ERROR ("Error. Cannot read file " << filepath << ". A line with 5 fields was expected, but only " << result.size() << " were found.");
                   }
 
-                  std::pair<int,int> map_idx = std::pair<int,int>(std::stoi(result[0]),std::stoi(result[1]));
+                  std::pair<int,int> map_idx = std::pair<int,int>(std::stoi(result[1]),std::stoi(result[0]));
 
                   dframedata[map_idx].differential_pseudorange = std::stod(result[2]);
                   dframedata[map_idx].differential_carrierphase = std::stod(result[3]);
@@ -181,21 +184,21 @@ namespace ns3 {
               }
 
               for(int i=0;m_singletrace == true && i<m_numVehicles;i++) {
-                  m_GPSRawTraceClient[std::to_string(i)]->setNewDFrame(currentGNSStimestamp,dframedata);
+                  m_GPSRawTraceClient[std::to_string(i)]->setNewDFrame(currentGNSStimestamp,currentAbsolutetimestamp,dframedata);
               }
 
               if(m_singletrace == false) {
-                  m_GPSRawTraceClient[currentVehId]->setNewDFrame(currentGNSStimestamp,dframedata);
+                  m_GPSRawTraceClient[currentVehId]->setNewDFrame(currentGNSStimestamp,currentAbsolutetimestamp,dframedata);
               }
           } else {
               NS_FATAL_ERROR("Error: wrong format in file: " + filepath);
           }
       }
 
-      // Sort for each object the vector "vehiclesdata" according to the timestamp
-      for(std::map<std::string,GPSRawTraceClient*>::iterator it=m_GPSRawTraceClient.begin(); it!=m_GPSRawTraceClient.end(); ++it) {
-          it->second->sortRawdata ();
-      }
+//      // Sort for each object the vector "vehiclesdata" according to the timestamp
+//      for(std::map<std::string,GPSRawTraceClient*>::iterator it=m_GPSRawTraceClient.begin(); it!=m_GPSRawTraceClient.end(); ++it) {
+//          it->second->sortRawdata ();
+//      }
 
       return m_GPSRawTraceClient;
     }

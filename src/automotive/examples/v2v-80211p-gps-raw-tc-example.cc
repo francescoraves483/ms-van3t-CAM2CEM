@@ -56,7 +56,7 @@ main (int argc, char *argv[])
   std::string gps_trace = "sampletrace.csv";
 
   std::string raw_trace_file_path = "src/gps-raw-tc/trace-example/GPS-Raw-Traces-Sample/";
-  std::string gps_raw_trace = "multi_constellation_CEM_v3.txt";
+  std::string gps_raw_trace = "multi_constellation_CEM_v8.txt";
 
   bool verbose = false;
   bool realtime = false;
@@ -164,6 +164,7 @@ main (int argc, char *argv[])
   Wifi80211pHelper wifi80211p = Wifi80211pHelper::Default ();
   wifi80211p.SetRemoteStationManager ("ns3::ConstantRateWifiManager", "DataMode", StringValue (datarate_config), "ControlMode", StringValue (datarate_config));
   NetDeviceContainer netDevices = wifi80211p.Install (wifiPhy, wifi80211pMac, obuNodes);
+  wifiPhy.EnablePcapAll ("zzzzz");
 
   /*** 4. Create Internet and ipv4 helpers ***/
   PacketSocketHelper packetSocket;
@@ -205,6 +206,9 @@ main (int argc, char *argv[])
 
       setupAppSimpleSender.Start (Seconds (0.0));
       setupAppSimpleSender.Stop (simulationTime - Simulator::Now () - Seconds (0.1));
+
+      nodeCounter++; // increment counter for next node
+
       return includedNode;
     };
 
@@ -212,36 +216,43 @@ main (int argc, char *argv[])
   std::function<void (Ptr<Node>)> shutdownWifiNode = [] (Ptr<Node> exNode)
     {
       /* stop all applications */
-      Ptr<simpleCAMSenderCEM> AppSimpleSender_ = exNode->GetApplication(0)->GetObject<simpleCAMSenderCEM>();
+    if(exNode->GetNApplications () > 0)
+    {
+        Ptr<simpleCAMSenderCEM> AppSimpleSender_ = exNode->GetApplication(0)->GetObject<simpleCAMSenderCEM>();
 
-      if(AppSimpleSender_)
-        AppSimpleSender_->StopApplicationNow();
+        if(AppSimpleSender_)
+          AppSimpleSender_->StopApplicationNow();
 
-       /* set position outside communication range */
-      Ptr<ConstantPositionMobilityModel> mob = exNode->GetObject<ConstantPositionMobilityModel>();
-      mob->SetPosition(Vector(-1000.0+(rand()%25),320.0+(rand()%25),250.0));// rand() for visualization purposes
+         /* set position outside communication range */
+        Ptr<ConstantPositionMobilityModel> mob = exNode->GetObject<ConstantPositionMobilityModel>();
+        mob->SetPosition(Vector(-1000.0+(rand()%25),320.0+(rand()%25),250.0));// rand() for visualization purposes
+    }
 
       /* NOTE: further actions could be required for a safe shut down! */
     };
 
+  int nodeCounterRaw = 0;
   std::function<Ptr<Node>()> gpsRawStartFcn = [&] () -> Ptr<Node>
   {
-      Ptr<Node> includedNode = obuNodes.Get(nodeCounter);
-      ++nodeCounter; // increment counter for next node
-      return obuNodes.Get(nodeCounter);
+      Ptr<Node> includedNode = obuNodes.Get(nodeCounterRaw);
+      nodeCounterRaw++; // increment counter for next node
+      return includedNode;
   };
 
   std::function<void (Ptr<Node>)> gpsRawEndFcn = [] (Ptr<Node> exNode)
   {
     /* stop all applications */
-    Ptr<simpleCAMSenderCEM> AppSimpleSender_ = exNode->GetApplication(0)->GetObject<simpleCAMSenderCEM>();
+    if(exNode->GetNApplications () > 0)
+    {
+        Ptr<simpleCAMSenderCEM> AppSimpleSender_ = exNode->GetApplication(0)->GetObject<simpleCAMSenderCEM>();
 
-    if(AppSimpleSender_)
-      AppSimpleSender_->StopApplicationNow();
+        if(AppSimpleSender_)
+          AppSimpleSender_->StopApplicationNow();
 
-     /* set position outside communication range */
-    Ptr<ConstantPositionMobilityModel> mob = exNode->GetObject<ConstantPositionMobilityModel>();
-    mob->SetPosition(Vector(-1000.0+(rand()%25),320.0+(rand()%25),250.0));// rand() for visualization purposes
+        /* set position outside communication range */
+       Ptr<ConstantPositionMobilityModel> mob = exNode->GetObject<ConstantPositionMobilityModel>();
+       mob->SetPosition(Vector(-1000.0+(rand()%25),320.0+(rand()%25),250.0)); // rand() for visualization purposes
+    }
   };
 
   // Start "playing" the GPS Trace for each vehicle (i.e. make the vehicle start their movements)

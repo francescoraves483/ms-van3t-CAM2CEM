@@ -356,11 +356,12 @@ namespace ns3 {
       NS_LOG_ERROR("GeoNet: SOCKET NOT FOUND ");
       return UNSPECIFIED_ERROR;
     }
-    if(m_socket_tx->Send (dataRequest.data)==-1)
+    if(m_socket_tx->Send (dataRequest.data)<=0)
       {
         NS_LOG_ERROR("Cannot send SHB packet ");
         return UNSPECIFIED_ERROR;
       }
+
     //7)reset beacon timer to prevent dissemination of unnecessary beacon packet
     m_event_Beacon.Cancel ();
     double T_beacon = m_GnBeaconServiceRetransmitTimer + (rand()% m_GnBeaconServiceMaxJItter);

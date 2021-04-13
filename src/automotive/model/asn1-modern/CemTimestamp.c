@@ -26,7 +26,8 @@ CemTimestamp_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
 		return -1;
 	}
 	
-	if((value >= 0 && value <= 18446744073709551615)) {
+	//if((value >= 0 && value <= 18446744073709551615UL)) {
+	if((value >= 0 && value <= 9223372036854775807)) {
 		/* Constraint check succeeded */
 		return 0;
 	} else {
@@ -45,7 +46,8 @@ static asn_oer_constraints_t asn_OER_type_CemTimestamp_constr_1 CC_NOTUSED = {
 	{ 8, 1 }	/* (0..18446744073709551615) */,
 	-1};
 asn_per_constraints_t asn_PER_type_CemTimestamp_constr_1 CC_NOTUSED = {
-	{ APC_CONSTRAINED,	 64, -1,  0,  18446744073709551615 }	/* (0..18446744073709551615) */,
+        //{ APC_CONSTRAINED,	 64, -1,  0,  18446744073709551615UL }	/* (0..18446744073709551615) */,
+        { APC_CONSTRAINED,	 64, -1,  0,  9223372036854775807 }	/* (0..18446744073709551615) */,
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
 	0, 0	/* No PER value map */
 };

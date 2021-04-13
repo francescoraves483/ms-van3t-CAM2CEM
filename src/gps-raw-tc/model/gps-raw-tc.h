@@ -44,7 +44,8 @@ namespace ns3 {
 
           typedef struct _raw_positioning_data {
               e_frametype type;
-              uint64_t cemTstamp;
+              double cemTstamp;
+              double absTstamp;
 
               GDP::satmap<iframe_data_t> iframe_data;
               GDP::satmap<dframe_data_t> dframe_data;
@@ -52,7 +53,7 @@ namespace ns3 {
               // To order the vector according to "cemTstamp"
               bool operator < (const _raw_positioning_data& str) const
               {
-                  return (cemTstamp < str.cemTstamp);
+                  return (absTstamp < str.absTstamp);
               }
           } raw_positioning_data_t;
 
@@ -62,8 +63,8 @@ namespace ns3 {
           void printDebugRawData();
 
           // Setter
-          void setNewIFrame(uint64_t cemTstamp,GDP::satmap<iframe_data_t> data);
-          void setNewDFrame(uint64_t cemTstamp,GDP::satmap<dframe_data_t> data);
+          void setNewIFrame(double cemTstamp, double abstimestamp, GDP::satmap<iframe_data_t> data);
+          void setNewDFrame(double cemTstamp, double abstimestamp, GDP::satmap<dframe_data_t> data);
 
           // Getter
           raw_positioning_data_t getLastFrameData();

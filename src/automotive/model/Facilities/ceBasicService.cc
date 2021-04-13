@@ -21,6 +21,7 @@
 
 #include "ceBasicService.h"
 #include "ns3/ItsPduHeader.h"
+#include <functional>
 
 namespace ns3
 {
@@ -91,6 +92,12 @@ namespace ns3
   {
     m_btp->setSocketRx(socket_rx);
     m_btp->addCEMRxCallback (std::bind(&CEBasicService::receiveCem,this,std::placeholders::_1,std::placeholders::_2));
+  }
+
+  void
+  CEBasicService::setGPSRawTraceClient(Ptr<GPSRawTraceClient> gps_raw_trace_client) {
+    m_gps_raw_trace_client=gps_raw_trace_client;
+    m_gps_raw_trace_client->setFrameCallback (std::bind(&CEBasicService::frameCallback,this,std::placeholders::_1));
   }
 
   void
@@ -201,13 +208,13 @@ namespace ns3
         // CEM timestamp
         INTEGER_t cemTstamp_I;
         memset(&cemTstamp_I, 0, sizeof(INTEGER_t));
-        asn_imax2INTEGER(&cemTstamp_I, rawdata.cemTstamp);
+        asn_imax2INTEGER(&cemTstamp_I, (long long unsigned int) rawdata.cemTstamp*cemTimestampMultiplier);
         cem->cem.choice.fps.cemTstamp = cemTstamp_I;
         m_ptr_queue.push ((void *) cem->cem.choice.fps.cemTstamp.buf);
 
         for (auto const& x : rawdata.iframe_data)
         {
-            SatelliteSignalInfo_t *ssi = reinterpret_cast<SatelliteSignalInfo_t *>(calloc(1, sizeof(SatelliteSignalInfo_t *)));
+            SatelliteSignalInfo_t *ssi = reinterpret_cast<SatelliteSignalInfo_t *>(calloc(1, sizeof(SatelliteSignalInfo_t)));
 
             // Fill in the satellite signal info data for this satellite and signal ...
 
@@ -217,7 +224,7 @@ namespace ns3
 
             INTEGER_t pseudorange_I;
             memset(&pseudorange_I, 0, sizeof(INTEGER_t));
-            asn_imax2INTEGER(&pseudorange_I, x.second.pseudorange);
+            asn_imax2INTEGER(&pseudorange_I, (unsigned long long int) x.second.pseudorange*pseudoRangeMultiplier);
             ssi->mandatoryContainer.pseudorange = pseudorange_I;
             m_ptr_queue.push ((void *) ssi->mandatoryContainer.pseudorange.buf);
 
@@ -229,11 +236,18 @@ namespace ns3
 
             INTEGER_t carrierphase_I;
             memset(&carrierphase_I, 0, sizeof(INTEGER_t));
-            asn_imax2INTEGER(&carrierphase_I, x.second.carrierphase);
+            asn_imax2INTEGER(&carrierphase_I, (unsigned long long int) x.second.carrierphase*carrierPhaseMultiplier);
             ssi->optionalContainer->carrierPhase = carrierphase_I;
             m_ptr_queue.push ((void *) ssi->optionalContainer->carrierPhase.buf);
 
-            ssi->optionalContainer->signalStrength = (SignalStrength_t) x.second.signalstrength;
+            if(x.second.signalstrength <= signalStrenghtUpperLim && x.second.signalstrength >= signalStrenghtLowerLim)
+            {
+                ssi->optionalContainer->signalStrength = (SignalStrength_t) x.second.signalstrength;
+            }
+            else
+            {
+                ssi->optionalContainer->signalStrength = SignalStrength_unavailable;
+            }
 
             // Uncertainty Container
             // This container is inserted only if at least one uncertainty value is available
@@ -267,16 +281,16 @@ namespace ns3
         // CEM timestamp
         INTEGER_t cemTstamp_I;
         memset(&cemTstamp_I, 0, sizeof(INTEGER_t));
-        asn_imax2INTEGER(&cemTstamp_I, rawdata.cemTstamp);
+        asn_imax2INTEGER(&cemTstamp_I, (long long unsigned int) rawdata.cemTstamp*cemTimestampMultiplier);
         cem->cem.choice.dmf.cemTstamp = cemTstamp_I;
         m_ptr_queue.push ((void *) cem->cem.choice.fps.cemTstamp.buf);
 
         for (auto const& x : rawdata.dframe_data)
         {
-            DifferentialSatelliteSignalInfo *dssi = reinterpret_cast<DifferentialSatelliteSignalInfo *>(calloc(1, sizeof(DifferentialSatelliteSignalInfo *)));
+            DifferentialSatelliteSignalInfo *dssi = reinterpret_cast<DifferentialSatelliteSignalInfo *>(calloc(1, sizeof(DifferentialSatelliteSignalInfo)));
 
             // Differential Mandatory Container
-            dssi->differentialMandatoryContainer.differentialPseudorange = (DifferentialPseudorange_t) x.second.differential_pseudorange;
+            dssi->differentialMandatoryContainer.differentialPseudorange = (DifferentialPseudorange_t) (x.second.differential_pseudorange*differentialPseudoRangeMultiplier);
 
             // Differential Optional Container
             dssi->differentialOptionalContainer = (DifferentialOptionalContainer_t *)calloc(1,sizeof(DifferentialOptionalContainer_t));
@@ -302,7 +316,6 @@ namespace ns3
     if (encode_result.result.encoded==-1)
       {
         errval=CEM_ASN1_UPER_ENC_ERROR;
-        if(encode_result.buffer) free(encode_result.buffer);
         goto error;
       }
 
@@ -344,11 +357,11 @@ namespace ns3
   void
   CEBasicService::freeCEM(CEM_t *cem)
   {
-    while(!m_ptr_queue.empty ())
-      {
-        free(m_ptr_queue.front ());
-        m_ptr_queue.pop();
-      };
+//    while(!m_ptr_queue.empty ())
+//      {
+//        free(m_ptr_queue.front ());
+//        m_ptr_queue.pop();
+//      };
 
     if(cem->cem.present == CoopEnhancement_PR_fps)
     {

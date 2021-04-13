@@ -35,7 +35,7 @@ namespace ns3
       m_lastvehicledataidx=0;
       m_startTrace=nullptr;
       m_endTrace=nullptr;
-      m_vehNode=NULL;
+      m_vehNode=nullptr;
       m_vehID=vehID;
       m_frame_callback=nullptr;
   }
@@ -55,25 +55,27 @@ namespace ns3
   }
 
   void
-  GPSRawTraceClient::setNewIFrame(uint64_t cemTstamp,GDP::satmap<iframe_data_t> data)
+  GPSRawTraceClient::setNewIFrame(double cemTstamp,double abstimestamp,GDP::satmap<iframe_data_t> data)
   {
       GPSRawTraceClient::raw_positioning_data_t curr_rawdata;
 
       curr_rawdata.type = FULL_PRECISION_I_FRAME;
       curr_rawdata.cemTstamp = cemTstamp;
       curr_rawdata.iframe_data = data;
+      curr_rawdata.absTstamp = abstimestamp;
 
       vehiclesdata.push_back (curr_rawdata);
   }
 
   void
-  GPSRawTraceClient::setNewDFrame(uint64_t cemTstamp,GDP::satmap<dframe_data_t> data)
+  GPSRawTraceClient::setNewDFrame(double cemTstamp,double abstimestamp,GDP::satmap<dframe_data_t> data)
   {
       GPSRawTraceClient::raw_positioning_data_t curr_rawdata;
 
       curr_rawdata.type = DIFFERENTIAL_D_FRAME;
       curr_rawdata.cemTstamp = cemTstamp;
       curr_rawdata.dframe_data = data;
+      curr_rawdata.absTstamp = abstimestamp;
 
       vehiclesdata.push_back (curr_rawdata);
   }
@@ -118,7 +120,7 @@ namespace ns3
     if(m_frame_callback == nullptr)
     {
         NS_FATAL_ERROR ("Error: attempted to start a GPS Raw Data Trace Client without specifying any frame callback");
-    }
+      }
 
     Simulator::Schedule(delay, &GPSRawTraceClient::CreateNode, this);
   }
@@ -142,19 +144,21 @@ namespace ns3
   void
   GPSRawTraceClient::UpdateRawData(void)
   {
-    if(m_vehNode==NULL)
+    if(m_vehNode==nullptr)
     {
       NS_FATAL_ERROR("NULL vehicle node pointer passed to GPSRawTraceClient::UpdateRawData (vehicle/object ID: "<<m_vehID<<".");
     }
+
+    m_frame_callback(getLastFrameData());
 
     m_lastvehicledataidx++;
 
     if(m_lastvehicledataidx+1==vehiclesdata.size())
       {
-        if(m_vehNode != NULL && m_endTrace != nullptr)
+        if(m_vehNode != nullptr && m_endTrace != nullptr)
         {
           m_endTrace(m_vehNode);
-          m_vehNode=NULL;
+          m_vehNode=nullptr;
         }
 
         NS_LOG_INFO("Raw Trace terminated for vehicle/object with ID: "<<m_vehID);
@@ -162,9 +166,7 @@ namespace ns3
         return;
       }
 
-    m_frame_callback(getLastFrameData());
-
-    m_event_updaterawdata=Simulator::Schedule(MicroSeconds (vehiclesdata[m_lastvehicledataidx+1].cemTstamp-vehiclesdata[m_lastvehicledataidx].cemTstamp), &GPSRawTraceClient::UpdateRawData, this);
+    m_event_updaterawdata=Simulator::Schedule(MilliSeconds ((vehiclesdata[m_lastvehicledataidx+1].absTstamp-vehiclesdata[m_lastvehicledataidx].absTstamp)*100), &GPSRawTraceClient::UpdateRawData, this);
   }
 
   void

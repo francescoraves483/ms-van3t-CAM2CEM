@@ -10,72 +10,58 @@
  * This type is implemented using NativeEnumerated,
  * so here we adjust the DEF accordingly.
  */
+int
+SignalID_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
+			asn_app_constraint_failed_f *ctfailcb, void *app_key) {
+	long value;
+
+	if(!sptr) {
+		ASN__CTFAIL(app_key, td, sptr,
+			"%s: value not given (%s:%d)",
+			td->name, __FILE__, __LINE__);
+		return -1;
+	}
+
+	value = *(const long *)sptr;
+
+	if((value >= 0 && value <= 23)) {
+		/* Constraint check succeeded */
+		return 0;
+	} else {
+		ASN__CTFAIL(app_key, td, sptr,
+			"%s: constraint failed (%s:%d)",
+			td->name, __FILE__, __LINE__);
+		return -1;
+	}
+}
+
+/*
+ * This type is implemented using NativeInteger,
+ * so here we adjust the DEF accordingly.
+ */
 static asn_oer_constraints_t asn_OER_type_SignalID_constr_1 CC_NOTUSED = {
-	{ 0, 0 },
+	{ 1, 1 }	/* (0..23) */,
 	-1};
 asn_per_constraints_t asn_PER_type_SignalID_constr_1 CC_NOTUSED = {
-	{ APC_CONSTRAINED,	 4,  4,  0,  14 }	/* (0..14) */,
+	{ APC_CONSTRAINED,	 5,  5,  0,  23 }	/* (0..20) */,
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },
 	0, 0	/* No PER value map */
 };
-static const asn_INTEGER_enum_map_t asn_MAP_SignalID_value2enum_1[] = {
-	{ 0,	11,	"unavailable" },
-	{ 1,	5,	"gpsL1" },
-	{ 2,	5,	"gpsL2" },
-	{ 3,	5,	"gpsL5" },
-	{ 6,	5,	"gloG1" },
-	{ 7,	5,	"gloG2" },
-	{ 8,	5,	"gloG3" },
-	{ 11,	5,	"galE1" },
-	{ 12,	5,	"galE2" },
-	{ 13,	6,	"galE5a" },
-	{ 14,	6,	"galE5b" },
-	{ 15,	5,	"galE6" },
-	{ 18,	5,	"beiB1" },
-	{ 19,	5,	"beiB2" },
-	{ 20,	5,	"beiB3" }
-};
-static const unsigned int asn_MAP_SignalID_enum2value_1[] = {
-	12,	/* beiB1(18) */
-	13,	/* beiB2(19) */
-	14,	/* beiB3(20) */
-	7,	/* galE1(11) */
-	8,	/* galE2(12) */
-	9,	/* galE5a(13) */
-	10,	/* galE5b(14) */
-	11,	/* galE6(15) */
-	4,	/* gloG1(6) */
-	5,	/* gloG2(7) */
-	6,	/* gloG3(8) */
-	1,	/* gpsL1(1) */
-	2,	/* gpsL2(2) */
-	3,	/* gpsL5(3) */
-	0	/* unavailable(0) */
-};
-const asn_INTEGER_specifics_t asn_SPC_SignalID_specs_1 = {
-	asn_MAP_SignalID_value2enum_1,	/* "tag" => N; sorted by tag */
-	asn_MAP_SignalID_enum2value_1,	/* N => "tag"; sorted by N */
-	15,	/* Number of elements in the maps */
-	0,	/* Enumeration is not extensible */
-	1,	/* Strict enumeration */
-	0,	/* Native long size */
-	0
-};
 static const ber_tlv_tag_t asn_DEF_SignalID_tags_1[] = {
-	(ASN_TAG_CLASS_UNIVERSAL | (10 << 2))
+	(ASN_TAG_CLASS_UNIVERSAL | (2 << 2))
 };
 asn_TYPE_descriptor_t asn_DEF_SignalID = {
 	"SignalID",
 	"SignalID",
-	&asn_OP_NativeEnumerated,
+	&asn_OP_NativeInteger,
 	asn_DEF_SignalID_tags_1,
 	sizeof(asn_DEF_SignalID_tags_1)
 		/sizeof(asn_DEF_SignalID_tags_1[0]), /* 1 */
 	asn_DEF_SignalID_tags_1,	/* Same as above */
 	sizeof(asn_DEF_SignalID_tags_1)
 		/sizeof(asn_DEF_SignalID_tags_1[0]), /* 1 */
-	{ &asn_OER_type_SignalID_constr_1, &asn_PER_type_SignalID_constr_1, NativeEnumerated_constraint },
+	{ &asn_OER_type_SignalID_constr_1, &asn_PER_type_SignalID_constr_1, SignalID_constraint },
 	0, 0,	/* Defined elsewhere */
-	&asn_SPC_SignalID_specs_1	/* Additional specs */
+	0	/* No specifics */
 };
 
