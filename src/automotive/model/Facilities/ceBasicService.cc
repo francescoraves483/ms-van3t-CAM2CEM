@@ -222,9 +222,16 @@ namespace ns3
             ssi->mandatoryContainer.signalID = x.first.second;
             ssi->mandatoryContainer.satellitePRN = x.first.first;
 
+            // If we receive a PseudoRange value which is not respecting the admitted limits, set PseudoRange as "unavailable" in this frame
+            unsigned long long int pseudoRange_asnUnits = (unsigned long long int) x.second.pseudorange*pseudoRangeMultiplier;
+            if(pseudoRange_asnUnits > pseudoRangeUpperLim || pseudoRange_asnUnits < pseudoRangeLowerLim)
+            {
+              pseudoRange_asnUnits = Pseudorange_unavailable;
+            }
+
             INTEGER_t pseudorange_I;
             memset(&pseudorange_I, 0, sizeof(INTEGER_t));
-            asn_imax2INTEGER(&pseudorange_I, (unsigned long long int) x.second.pseudorange*pseudoRangeMultiplier);
+            asn_imax2INTEGER(&pseudorange_I, pseudoRange_asnUnits);
             ssi->mandatoryContainer.pseudorange = pseudorange_I;
             m_ptr_queue.push ((void *) ssi->mandatoryContainer.pseudorange.buf);
 
@@ -234,9 +241,16 @@ namespace ns3
 
             ssi->optionalContainer->doppler = (Doppler_t) x.second.doppler;
 
+            // If we receive a CarrierPhase value which is not respecting the admitted limits, set CarrierPhase as "unavailable" in this frame
+            unsigned long long int carrierPhase_asnUnits = (unsigned long long int) x.second.carrierphase*carrierPhaseMultiplier;
+            if(carrierPhase_asnUnits > carrierPhaseUpperLim || carrierPhase_asnUnits < carrierPhaseLowerLim)
+            {
+              carrierPhase_asnUnits = CarrierPhase_unavailable;
+            }
+
             INTEGER_t carrierphase_I;
             memset(&carrierphase_I, 0, sizeof(INTEGER_t));
-            asn_imax2INTEGER(&carrierphase_I, (unsigned long long int) x.second.carrierphase*carrierPhaseMultiplier);
+            asn_imax2INTEGER(&carrierphase_I, carrierPhase_asnUnits);
             ssi->optionalContainer->carrierPhase = carrierphase_I;
             m_ptr_queue.push ((void *) ssi->optionalContainer->carrierPhase.buf);
 
@@ -290,7 +304,15 @@ namespace ns3
             DifferentialSatelliteSignalInfo *dssi = reinterpret_cast<DifferentialSatelliteSignalInfo *>(calloc(1, sizeof(DifferentialSatelliteSignalInfo)));
 
             // Differential Mandatory Container
-            dssi->differentialMandatoryContainer.differentialPseudorange = (DifferentialPseudorange_t) (x.second.differential_pseudorange*differentialPseudoRangeMultiplier);
+            DifferentialPseudorange_t differentialPseudoRange_asnUnits = (DifferentialPseudorange_t) (x.second.differential_pseudorange*differentialPseudoRangeMultiplier);
+
+            // If we receive a differentialPseudoRange value which is not respecting the admitted limits, set differentialPseudoRange as "unavailable" in this frame
+            if(differentialPseudoRange_asnUnits > differentialPseudoRangeUpperLim || differentialPseudoRange_asnUnits < differentialPseudoRangeLowerLim)
+            {
+              differentialPseudoRange_asnUnits = DifferentialPseudorange_unavailable;
+            }
+
+            dssi->differentialMandatoryContainer.differentialPseudorange = differentialPseudoRange_asnUnits;
 
             // Differential Optional Container
             dssi->differentialOptionalContainer = (DifferentialOptionalContainer_t *)calloc(1,sizeof(DifferentialOptionalContainer_t));

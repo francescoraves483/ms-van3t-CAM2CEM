@@ -54,10 +54,16 @@ namespace ns3
     const int m_differentialIDMax = 8;
     const double cemTimestampMultiplier = 1e10;
     const long pseudoRangeMultiplier = 1e2;
-    const long carrierPhaseMultiplier = 1e2;
+    const long carrierPhaseMultiplier = 1e3;
     const long differentialPseudoRangeMultiplier = 1e2;
     const long signalStrenghtUpperLim = 200;
     const long signalStrenghtLowerLim = 0;
+    const unsigned long long pseudoRangeUpperLim = 1800000000;
+    const unsigned long long pseudoRangeLowerLim = 2900000000;
+    const unsigned long long carrierPhaseUpperLim = 70000000000;
+    const unsigned long long carrierPhaseLowerLim = 160000000000;
+    const long long differentialPseudoRangeUpperLim = -100000;
+    const long long differentialPseudoRangeLowerLim = 100000;
 
     void frameCallback(GPSRawTraceClient::raw_positioning_data_t raw_frame_data);
     void freeCEM(CEM_t *cem);
