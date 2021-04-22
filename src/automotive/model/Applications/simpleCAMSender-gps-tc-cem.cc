@@ -48,11 +48,11 @@ namespace ns3
             BooleanValue(false),
             MakeBooleanAccessor (&simpleCAMSenderCEM::m_real_time),
             MakeBooleanChecker ())
-        .AddAttribute ("GPSClient",
-            "GPS-TC client",
+        .AddAttribute ("TraCIClient",
+            "TraCI client",
             PointerValue (0),
-            MakePointerAccessor (&simpleCAMSenderCEM::m_gps_tc_client),
-            MakePointerChecker<GPSTraceClient> ())
+            MakePointerAccessor (&simpleCAMSenderCEM::m_traci_client),
+            MakePointerChecker<TraciClient> ())
         .AddAttribute ("GPSRawClient",
             "Raw GNSS Data Trace Client (GPS-Raw-TC)",
             PointerValue (0),
@@ -64,7 +64,7 @@ namespace ns3
   simpleCAMSenderCEM::simpleCAMSenderCEM ()
   {
     NS_LOG_FUNCTION(this);
-    m_gps_tc_client = nullptr;
+    m_traci_client = nullptr;
     m_gps_raw_tc_client = nullptr;
     m_app_stopped = false;
 
@@ -99,11 +99,11 @@ namespace ns3
     NS_LOG_FUNCTION(this);
 
     // Ensure that the mobility client has been set
-    if(m_gps_tc_client==nullptr)
+    if(m_traci_client==nullptr)
     {
         NS_FATAL_ERROR("No mobility client specified in simpleCAMSender");
     }
-    m_id = m_gps_tc_client->getID();
+    m_id = m_traci_client->GetVehicleId (this->GetNode ());
 
     // Create new BTP and GeoNet objects and set them in DENBasicService and CABasicService
     m_btp = CreateObject <btp>();
@@ -134,9 +134,9 @@ namespace ns3
     m_denService.setSocketTx (m_socket);
     m_denService.setSocketRx (m_socket);
 
-    m_caService.setStationProperties (std::stol(m_id), StationType_passengerCar);
-    m_denService.setStationProperties (std::stol(m_id), StationType_passengerCar);
-    m_ceService.setStationProperties (std::stol(m_id), StationType_passengerCar);
+    m_caService.setStationProperties (std::stol(m_id.substr (3)), StationType_passengerCar);
+    m_denService.setStationProperties (std::stol(m_id.substr (3)), StationType_passengerCar);
+    m_ceService.setStationProperties (std::stol(m_id.substr (3)), StationType_passengerCar);
 
     m_denService.addDENRxCallback (std::bind(&simpleCAMSenderCEM::receiveDENM,this,std::placeholders::_1,std::placeholders::_2));
     m_denService.setRealTime (m_real_time);
@@ -153,9 +153,9 @@ namespace ns3
     m_ceService.setSocketTx (m_socket);
     m_ceService.addCERxCallback (std::bind(&simpleCAMSenderCEM::receiveCEM,this,std::placeholders::_1,std::placeholders::_2));
 
-    VDP* gpstc_vdp = new VDPGPSTraceClient(m_gps_tc_client,m_id);
-    m_caService.setVDP(gpstc_vdp);
-    m_denService.setVDP(gpstc_vdp);
+    VDP* traci_vdp = new VDPTraCI(m_traci_client,m_id);
+    m_caService.setVDP(traci_vdp);
+    m_denService.setVDP(traci_vdp);
 
     // Set the raw GNSS Data Trace client in the CE Basic Service object
     m_ceService.setGPSRawTraceClient(m_gps_raw_tc_client);
@@ -178,7 +178,6 @@ namespace ns3
     {
       uint64_t cam_sent, cem_sent;
 
-      m_gps_tc_client->StopUpdates();
       m_gps_raw_tc_client->StopUpdates ();
 
       cam_sent = m_caService.terminateDissemination ();

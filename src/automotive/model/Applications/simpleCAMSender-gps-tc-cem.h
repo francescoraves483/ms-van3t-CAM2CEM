@@ -48,7 +48,7 @@ private:
   virtual void StartApplication (void);
   virtual void StopApplication (void);
 
-  Ptr<GPSTraceClient> m_gps_tc_client; //!< GPS trace client
+  Ptr<TraciClient> m_traci_client; //!< TraCI SUMO client
   Ptr<GPSRawTraceClient> m_gps_raw_tc_client; //!< Raw GNSS Data Trace client
 
   std::string m_id; //!< vehicle id

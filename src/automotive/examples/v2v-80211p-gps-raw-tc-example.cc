@@ -52,8 +52,9 @@ main (int argc, char *argv[])
   std::string datarate_config;
 
   /*** 0.a App Options ***/
-  std::string trace_file_path = "src/gps-tc/examples/GPS-Traces-Sample/";
-  std::string gps_trace = "sampletrace.csv";
+  std::string sumo_folder = "src/automotive/examples/sumo_files_v2v_map/";
+  std::string mob_trace = "cars.rou.xml";
+  std::string sumo_config ="src/automotive/examples/sumo_files_v2v_map/map.sumo.cfg";
 
   std::string raw_trace_file_path = "src/gps-raw-tc/trace-example/GPS-Raw-Traces-Sample/";
   std::string gps_raw_trace = "multi_constellation_CEM_v8.txt";
@@ -63,16 +64,25 @@ main (int argc, char *argv[])
   int txPower=26;
   float datarate=12;
 
+  bool sumo_gui = true;
+  double sumo_updates = 0.01;
+
   double simTime = 100;
 
+  int numberOfNodes;
   uint32_t nodeCounter = 0;
 
   CommandLine cmd;
 
+  xmlDocPtr rou_xml_file;
+
   /* Cmd Line option for application */
   cmd.AddValue ("realtime", "Use the realtime scheduler or not", realtime);
-  cmd.AddValue ("trace-folder","Position of GPS trace files",trace_file_path);
-  cmd.AddValue ("gps-trace", "Name of the GPS trace file", gps_trace);
+  cmd.AddValue ("sumo-gui", "Use SUMO gui or not", sumo_gui);
+  cmd.AddValue ("sumo-updates", "SUMO granularity", sumo_updates);
+  cmd.AddValue ("sumo-folder","Position of sumo config files",sumo_folder);
+  cmd.AddValue ("mob-trace", "Name of the mobility trace file", mob_trace);
+  cmd.AddValue ("sumo-config", "Location and name of SUMO configuration file", sumo_config);
 
   cmd.AddValue ("raw-trace-folder","Position of Raw GNSS data trace files",raw_trace_file_path);
   cmd.AddValue ("gps-raw-trace", "Name of the Raw GNSS Data trace file", gps_raw_trace);
@@ -112,30 +122,49 @@ main (int argc, char *argv[])
   if(realtime)
       GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));
 
-  /*** 0.b Read from the GPS Trace and create a GPS Trace Client for each vehicle
-  ***/
   NS_LOG_INFO("Reading the .rou file...");
-  std::map<std::string,GPSTraceClient*> GPSTCMap;
+  std::string path = sumo_folder + mob_trace;
+  /* Load the .rou.xml document */
+  xmlInitParser();
+  rou_xml_file = xmlParseFile(path.c_str ());
+  if (rou_xml_file == NULL)
+    {
+      NS_FATAL_ERROR("Error: unable to parse the specified XML file: "<<path);
+    }
+  numberOfNodes = XML_rou_count_vehicles(rou_xml_file);
+
+  xmlFreeDoc(rou_xml_file);
+  xmlCleanupParser();
+
+  if(numberOfNodes==-1)
+    {
+      NS_FATAL_ERROR("Fatal error: cannot gather the number of vehicles from the specified XML file: "<<path<<". Please check if it is a correct SUMO file.");
+    }
+  NS_LOG_INFO("The .rou file has been read: " << numberOfNodes << " vehicles will be present in the simulation.");
+
+  // std::map<std::string,GPSTraceClient*> GPSTCMap; // [old line of code for using GPS-tc instead of SUMO]
   std::map<std::string,GPSRawTraceClient*> GPSRawTCMap;
 
-  GPSTraceClientHelper GPSTCHelper;
+  // GPSTraceClientHelper GPSTCHelper; // [old line of code for using GPS-tc instead of SUMO]
   GPSRawTraceClientHelper GPSRawTCHelper;
 
-  GPSTCHelper.setVerbose(verbose);
+  // GPSTCHelper.setVerbose(verbose); // [old line of code for using GPS-tc instead of SUMO]
 
-  std::string path = trace_file_path + gps_trace;
-  GPSTCMap = GPSTCHelper.createTraceClientsFromCSV(path);
+  // std::string path = trace_file_path + gps_trace; // [old line of code for using GPS-tc instead of SUMO]
+  // GPSTCMap = GPSTCHelper.createTraceClientsFromCSV(path); // [old line of code for using GPS-tc instead of SUMO]
 
   GPSRawTCHelper.setHeaderPresence (false);
   GPSRawTCHelper.setOneTraceAllVehicles (true);
 
   // Set an many vehicles for the Raw GPS Data Traces as the vehicles available in the GPS Trace Client traces
-  GPSRawTCHelper.setSingleTraceModeVehicles (GPSTCMap.size ());
+  // GPSRawTCHelper.setSingleTraceModeVehicles (GPSTCMap.size ()); // [old line of code for using GPS-tc instead of SUMO]
+  GPSRawTCHelper.setSingleTraceModeVehicles (numberOfNodes);
 
   std::string raw_path = raw_trace_file_path + gps_raw_trace;
   GPSRawTCMap = GPSRawTCHelper.createRawTraceClientsFromCSV (raw_path);
 
-  int numberOfNodes=GPSTCMap.size ();
+  // int numberOfNodes=GPSTCMap.size (); // [old line of code for using GPS-tc instead of SUMO]
+
   NS_LOG_INFO("The .rou file has been read: " << numberOfNodes << " vehicles will be present in the simulation.");
 
   /* Set the simulation time (in seconds) */
@@ -155,7 +184,7 @@ main (int argc, char *argv[])
   YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default ();
   Ptr<YansWifiChannel> channel = wifiChannel.Create ();
   wifiPhy.SetChannel (channel);
-  /* To be removed when BPT is implemented */
+  /* To be removed when BTP is implemented */
   //Config::SetDefault ("ns3::ArpCache::DeadTimeout", TimeValue (Seconds (1)));
 
   /*** 3. Create and setup MAC ***/
@@ -164,25 +193,42 @@ main (int argc, char *argv[])
   Wifi80211pHelper wifi80211p = Wifi80211pHelper::Default ();
   wifi80211p.SetRemoteStationManager ("ns3::ConstantRateWifiManager", "DataMode", StringValue (datarate_config), "ControlMode", StringValue (datarate_config));
   NetDeviceContainer netDevices = wifi80211p.Install (wifiPhy, wifi80211pMac, obuNodes);
-  // wifiPhy.EnablePcapAll ("CEMTraces"); // Uncomment this to create .pcap files with the exchanged CAM/CEM/... messages
+  wifiPhy.EnablePcapAll ("CEMTraces"); // Uncomment this to create .pcap files with the exchanged CAM/CEM/... messages
 
   /*** 4. Create Internet and ipv4 helpers ***/
   PacketSocketHelper packetSocket;
   packetSocket.Install (obuNodes);
 
-  /*** 6. Setup Mobility and position node pool ***/
+  /*** 5. Setup Mobility and position node pool ***/
   MobilityHelper mobility;
   mobility.Install (obuNodes);
 
+  /*** 6. Setup Traci and start SUMO ***/
+  Ptr<TraciClient> sumoClient = CreateObject<TraciClient> ();
+  sumoClient->SetAttribute ("SumoConfigPath", StringValue (sumo_config));
+  sumoClient->SetAttribute ("SumoBinaryPath", StringValue (""));    // use system installation of sumo
+  sumoClient->SetAttribute ("SynchInterval", TimeValue (Seconds (sumo_updates)));
+  sumoClient->SetAttribute ("StartTime", TimeValue (Seconds (0.0)));
+  sumoClient->SetAttribute ("SumoGUI", BooleanValue (sumo_gui));
+  sumoClient->SetAttribute ("SumoPort", UintegerValue (3400));
+  sumoClient->SetAttribute ("PenetrationRate", DoubleValue (1.0));
+  sumoClient->SetAttribute ("SumoLogFile", BooleanValue (false));
+  sumoClient->SetAttribute ("SumoStepLog", BooleanValue (false));
+  sumoClient->SetAttribute ("SumoSeed", IntegerValue (10));
+  sumoClient->SetAttribute ("SumoAdditionalCmdOptions", StringValue ("--verbose true"));
+  sumoClient->SetAttribute ("SumoWaitForSocket", TimeValue (Seconds (1.0)));
+
   /*** 7. Setup interface and application for dynamic nodes ***/
   simpleCAMSenderCEMHelper SimpleCAMSenderCEMHelper;
+  SimpleCAMSenderCEMHelper.SetAttribute ("TraCIClient", PointerValue(sumoClient));
   SimpleCAMSenderCEMHelper.SetAttribute ("RealTime", BooleanValue(realtime));
 
   // Create vector with the GPS Trace Client map values
-  std::vector<GPSTraceClient*> v_gps_tc;
-  GPS_TC_MAP_ITERATOR(GPSTCMap,GPSTCit) {
-    v_gps_tc.push_back (GPS_TC_IT_OBJECT(GPSTCit));
-  }
+  // [old lines of code for using GPS-tc instead of SUMO]
+//  std::vector<GPSTraceClient*> v_gps_tc;
+//  GPS_TC_MAP_ITERATOR(GPSTCMap,GPSTCit) {
+//    v_gps_tc.push_back (GPS_TC_IT_OBJECT(GPSTCit));
+//  }
 
   // Create vector with the GPS Raw Trace Client map values
   std::vector<GPSRawTraceClient*> v_raw_gps_tc;
@@ -200,7 +246,6 @@ main (int argc, char *argv[])
       Ptr<Node> includedNode = obuNodes.Get(nodeCounter);
 
       /* Install Application */
-      SimpleCAMSenderCEMHelper.SetAttribute ("GPSClient", PointerValue(v_gps_tc[nodeCounter]));
       SimpleCAMSenderCEMHelper.SetAttribute ("GPSRawClient", PointerValue(v_raw_gps_tc[nodeCounter]));
       ApplicationContainer setupAppSimpleSender = SimpleCAMSenderCEMHelper.Install (includedNode);
 
@@ -231,6 +276,9 @@ main (int argc, char *argv[])
       /* NOTE: further actions could be required for a safe shut down! */
     };
 
+  /* Start TraCI client with given function pointers */
+  sumoClient->SumoSetup (setupNewWifiNode, shutdownWifiNode);
+
   int nodeCounterRaw = 0;
   std::function<Ptr<Node>()> gpsRawStartFcn = [&] () -> Ptr<Node>
   {
@@ -259,10 +307,11 @@ main (int argc, char *argv[])
   // "Seconds(0)" is specified to "playTrace" to reproduce all the traces since the beginning
   // of the simulation. A different amount of time for all the vehicles or a different amount of time
   // for each vehicle can also be specified to delay the reproduction of the traces
-  GPS_TC_MAP_ITERATOR(GPSTCMap,GPSTCit) {
-      GPS_TC_IT_OBJECT(GPSTCit)->GPSTraceClientSetup(setupNewWifiNode,shutdownWifiNode);
-      GPS_TC_IT_OBJECT(GPSTCit)->playTrace(Seconds(0));
-  }
+  // [old lines of code for using GPS-tc instead of SUMO]
+//  GPS_TC_MAP_ITERATOR(GPSTCMap,GPSTCit) {
+//      GPS_TC_IT_OBJECT(GPSTCit)->GPSTraceClientSetup(setupNewWifiNode,shutdownWifiNode);
+//      GPS_TC_IT_OBJECT(GPSTCit)->playTrace(Seconds(0));
+//  }
 
   GPS_RAW_TC_MAP_ITERATOR (GPSRawTCMap,GPSRawTCit) {
       GPS_TC_IT_OBJECT(GPSRawTCit)->GPSRawTraceClientSetup(gpsRawStartFcn,gpsRawEndFcn);
