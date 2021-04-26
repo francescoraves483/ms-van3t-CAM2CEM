@@ -323,7 +323,7 @@ def build(bld):
         'model/Applications/areaSpeedAdvisorClientLTE.h',
         'model/Applications/areaSpeedAdvisorServerLTE.h',
         'model/Applications/emergencyVehicleAlert.h',
-        'model/Applications/simpleCAMSender-helper.h',
+        'model/Applications/simpleCAMSender-gps-tc.h',
         'model/Applications/simpleCAMSender-gps-tc-cem.h',
 
         'model/Facilities/denBasicService.h',
