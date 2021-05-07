@@ -42,4 +42,4 @@ namespace ns3
   };
 }
 
-#endif // TSBheader_H
+#endif // TSB_HEADER_H

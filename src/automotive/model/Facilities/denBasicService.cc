@@ -238,7 +238,7 @@ namespace ns3 {
   DENBasicService::setSocketRx (Ptr<Socket> socket_rx)
   {
     m_btp->setSocketRx(socket_rx);
-    m_btp->addDENMRxCallback (std::bind(&DENBasicService::receiveDENM,this,std::placeholders::_1,std::placeholders::_2));
+    m_btp->addDENMRxCallback (std::bind(&DENBasicService::receiveDENM,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
   }
 
   DENBasicService_error_t
@@ -653,7 +653,7 @@ namespace ns3 {
   }
 
   void
-  DENBasicService::receiveDENM(BTPDataIndication_t dataIndication,Address from)
+  DENBasicService::receiveDENM(BTPDataIndication_t dataIndication,Address from,uint32_t originalPacketSize)
   {
     Ptr<Packet> packet;
     DENM_t *decoded_denm;
@@ -663,6 +663,8 @@ namespace ns3 {
     long detectionTime_long;
     long referenceTime_long;
     std::pair <unsigned long, long> map_index;
+
+    (void) originalPacketSize; // Unused, for the time being
 
     packet = dataIndication.data;
 

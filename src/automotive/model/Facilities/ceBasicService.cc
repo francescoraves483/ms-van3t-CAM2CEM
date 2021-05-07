@@ -40,6 +40,9 @@ namespace ns3
 
     m_fullPrecisionID = 0;
     m_differentialID = 0;
+
+    m_bytes_sent = 0;
+    m_bytes_received = 0;
   }
 
   CEBasicService::CEBasicService(unsigned long fixed_stationid,long fixed_stationtype,bool real_time)
@@ -91,7 +94,7 @@ namespace ns3
   CEBasicService::setSocketRx (Ptr<Socket> socket_rx)
   {
     m_btp->setSocketRx(socket_rx);
-    m_btp->addCEMRxCallback (std::bind(&CEBasicService::receiveCem,this,std::placeholders::_1,std::placeholders::_2));
+    m_btp->addCEMRxCallback (std::bind(&CEBasicService::receiveCem,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
   }
 
   void
@@ -131,7 +134,7 @@ namespace ns3
   }
 
   void
-  CEBasicService::receiveCem (BTPDataIndication_t dataIndication, Address from)
+  CEBasicService::receiveCem (BTPDataIndication_t dataIndication, Address from, uint32_t originalPacketSize)
   {
     Ptr<Packet> packet;
     CEM_t *decoded_cem;
@@ -140,6 +143,11 @@ namespace ns3
     uint8_t *buffer; //= new uint8_t[packet->GetSize ()];
     buffer=(uint8_t *)malloc((packet->GetSize ())*sizeof(uint8_t));
     packet->CopyData (buffer, packet->GetSize ());
+
+    if(originalPacketSize > 0)
+    {
+      m_bytes_received += originalPacketSize;
+    }
 
     /* Try to check if the received packet is really a CEM */
     if (buffer[1]!=FIX_CEMID)
@@ -181,6 +189,8 @@ namespace ns3
     BTPDataRequest_t dataRequest = {};
 
     asn_encode_to_new_buffer_result_t encode_result={.buffer=NULL};
+
+    int sendBTP_rval=0;
 
     cem=(CEM_t*) calloc(1, sizeof(CEM_t));
     if(cem==NULL)
@@ -355,7 +365,16 @@ namespace ns3
     dataRequest.GNTraClass = 0x02; // Store carry foward: no - Channel offload: no - Traffic Class ID: 2
     dataRequest.lenght = packet->GetSize ();
     dataRequest.data = packet;
-    m_btp->sendBTP(dataRequest);
+    sendBTP_rval = m_btp->sendBTP(dataRequest);
+
+    // sendBTP reports the return value of the Send() call on the PacketSocket
+    // sendBTP_rval will thus contain the the number of bytes accepted for transmission on the socket
+    // It could also be, however, equal to 0 or -1 in an error occurs or no bytes are accepted at the MAC layer
+    // In this case, m_bytes_sent should not be increased as no bytes are actually sent
+    if(sendBTP_rval>0)
+    {
+      m_bytes_sent+=sendBTP_rval;
+    }
 
     m_cem_sent++;
 
@@ -373,6 +392,17 @@ namespace ns3
   CEBasicService::terminateDissemination()
   {
     Simulator::Remove(m_event_cemDisseminationStart);
+    return m_cem_sent;
+  }
+
+  uint64_t
+  CEBasicService::terminateDissemination(uint64_t &bytes_tx,uint64_t &bytes_rx)
+  {
+    Simulator::Remove(m_event_cemDisseminationStart);
+
+    bytes_tx=m_bytes_sent;
+    bytes_rx=m_bytes_received;
+
     return m_cem_sent;
   }
 

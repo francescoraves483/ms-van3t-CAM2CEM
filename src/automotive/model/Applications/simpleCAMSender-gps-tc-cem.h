@@ -30,13 +30,15 @@ public:
   void receiveDENM(denData denm, Address from);
   void receiveCEM (CEM_t *cem, Address from);
 
+  void setCSVOfstream(std::ofstream *ofptr) {m_csv_stream_ptr = ofptr;}
+
   void StopApplicationNow ();
+  void stopDissemination();
 
 protected:
   virtual void DoDispose (void);
 
 private:
-
   DENBasicService m_denService; //!< DEN Basic Service object
   CABasicService m_caService; //!< CA Basic Service object
   CEBasicService m_ceService; //!< CE Basic Service object
@@ -58,11 +60,24 @@ private:
 
   /* Counters */
   int m_cam_sent;
+  int m_cem_sent;
 
   bool m_app_stopped;
 
   int m_rx_cem;
   int m_rx_cam;
+
+  uint64_t m_cam_bytes_tx, m_cam_bytes_rx;
+  uint64_t m_cem_bytes_tx, m_cem_bytes_rx;
+
+  double m_dissemination_delay_seconds;
+  double m_terminate_at;
+  EventId m_event_terminate_at;
+
+  bool m_terminate_at_triggered;
+
+  // CSV file ofstream (the file should have been already opened before!)
+  std::ofstream *m_csv_stream_ptr;
 };
 
 } // namespace ns3

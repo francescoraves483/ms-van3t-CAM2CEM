@@ -59,18 +59,23 @@ main (int argc, char *argv[])
   std::string raw_trace_file_path = "src/gps-raw-tc/trace-example/GPS-Raw-Traces-Sample/";
   std::string gps_raw_trace = "multi_constellation_CEM_v8.txt";
 
+  std::string csv_prefix = "gps-raw-tc-log";
+
   bool verbose = false;
   bool realtime = false;
-  int txPower=26;
+  int txPower=50;
   float datarate=12;
 
   bool sumo_gui = true;
   double sumo_updates = 0.01;
 
   double simTime = 100;
+  double terminateAt = -1;
 
   int numberOfNodes;
   uint32_t nodeCounter = 0;
+
+  double dissemination_delay = 0.0;
 
   CommandLine cmd;
 
@@ -83,6 +88,9 @@ main (int argc, char *argv[])
   cmd.AddValue ("sumo-folder","Position of sumo config files",sumo_folder);
   cmd.AddValue ("mob-trace", "Name of the mobility trace file", mob_trace);
   cmd.AddValue ("sumo-config", "Location and name of SUMO configuration file", sumo_config);
+  cmd.AddValue ("csv-prefix", "Prefix for the CSV file name for logging", csv_prefix);
+  cmd.AddValue ("dissemination-delay", "Delay, in seconds, after which the CAM and CEM dissemination can start", dissemination_delay);
+  cmd.AddValue ("dissemination-terminate-at", "Instant in time at which the dissemination shall be terminated (-1 = disabled, i.e. terminate when the simulation terminates)", terminateAt);
 
   cmd.AddValue ("raw-trace-folder","Position of Raw GNSS data trace files",raw_trace_file_path);
   cmd.AddValue ("gps-raw-trace", "Name of the Raw GNSS Data trace file", gps_raw_trace);
@@ -236,6 +244,14 @@ main (int argc, char *argv[])
     v_raw_gps_tc.push_back (GPS_RAW_TC_IT_OBJECT(GPSRawTCit));
   }
 
+  // Open a new CSV file for logging
+//  std::ofstream csv_filestream;
+//  std::string csv_filename = csv_prefix + std::to_string(numberOfNodes) + ".csv";
+
+//  csv_filestream.open(csv_filename.c_str ());
+
+//  csv_filestream << "vehicle_ID,CAM_rx,CAM_tx,CAM_bytes_tx,CAM_bytes_rx,CEM_rx,CEM_tx,CEM_bytes_tx,CEM_bytes_rx" << std::endl;
+
   /* callback function for node creation */
   std::function<Ptr<Node> ()> setupNewWifiNode = [&] () -> Ptr<Node>
     {
@@ -247,7 +263,15 @@ main (int argc, char *argv[])
 
       /* Install Application */
       SimpleCAMSenderCEMHelper.SetAttribute ("GPSRawClient", PointerValue(v_raw_gps_tc[nodeCounter]));
+      SimpleCAMSenderCEMHelper.SetAttribute ("DisseminationDelay", DoubleValue(dissemination_delay));
+
+      if(terminateAt > 0)
+      {
+          SimpleCAMSenderCEMHelper.SetAttribute ("TerminateAt", DoubleValue(terminateAt));
+      }
       ApplicationContainer setupAppSimpleSender = SimpleCAMSenderCEMHelper.Install (includedNode);
+
+      // setupAppSimpleSender.Get (0)->GetObject<simpleCAMSenderCEM>()->setCSVOfstream(&csv_filestream);
 
       setupAppSimpleSender.Start (Seconds (0.0));
       setupAppSimpleSender.Stop (simulationTime - Simulator::Now () - Seconds (0.1));
@@ -322,6 +346,8 @@ main (int argc, char *argv[])
 
   Simulator::Run ();
   Simulator::Destroy ();
+
+//  csv_filestream.close();
 
   return 0;
 }

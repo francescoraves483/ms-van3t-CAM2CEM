@@ -38,16 +38,19 @@ namespace ns3
     void setVDP(VDP* vdp) {m_vdp=vdp;}
     void setBTP(Ptr<btp> btp){m_btp = btp;}
 
-    void receiveCam(BTPDataIndication_t dataIndication, Address from);
+    void receiveCam(BTPDataIndication_t dataIndication, Address from, uint32_t originalPacketSize);
     void changeNGenCamMax(int16_t N_GenCamMax) {m_N_GenCamMax=N_GenCamMax;}
     void changeRSUGenInterval(long RSU_GenCam_ms) {m_RSU_GenCam_ms=RSU_GenCam_ms;}
     void addCARxCallback(std::function<void(CAM_t *, Address)> rx_callback) {m_CAReceiveCallback=rx_callback;}
     void setRealTime(bool real_time){m_real_time=real_time;}
 
+    uint64_t getBytesRx(){return m_bytes_received;}
+
     void startCamDissemination();
     void startCamDissemination(double desync_s);
 
     uint64_t terminateDissemination();
+    uint64_t terminateDissemination(uint64_t &bytes_tx,uint64_t &bytes_rx);
 
     const long T_GenCamMin_ms = 100;
     const long T_GenCamMax_ms = 1000;
@@ -91,6 +94,9 @@ namespace ns3
     // Statistic: number of CAMs successfully sent since the CA Basic Service has been started
     // The CA Basic Service can count up to 18446744073709551615 (UINT64_MAX) CAMs
     uint64_t m_cam_sent;
+
+    uint64_t m_bytes_sent;
+    uint64_t m_bytes_received;
 
     // ns-3 event IDs used to properly stop the simulation with terminateDissemination()
     EventId m_event_camDisseminationStart;

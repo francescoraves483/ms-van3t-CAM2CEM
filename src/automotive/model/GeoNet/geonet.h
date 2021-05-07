@@ -67,8 +67,9 @@ namespace ns3
       void setStationType(long fixed_stationtype);
       void setVDP(VDP* vdp);
       void setSocketTx(Ptr<Socket> socket_tx);
-      void addRxCallback(std::function<void(GNDataIndication_t,Address)> rx_callback) {m_ReceiveCallback=rx_callback;}
+      void addRxCallback(std::function<void(GNDataIndication_t,Address,uint32_t)> rx_callback) {m_ReceiveCallback=rx_callback;}
       GNDataConfirm_t sendGN(GNDataRequest_t dataRequest);
+      GNDataConfirm_t sendGN(GNDataRequest_t dataRequest,int &numbytes);
       void receiveGN(Ptr<Socket> socket);
       void cleanup();
 
@@ -77,13 +78,13 @@ namespace ns3
       void LocTE_timeout(GNAddress entry_address);
       void newLocTE(GNlpv_t longPositionVector);
       void LocTUpdate(GNlpv_t lpv,std::map<GNAddress,GNLocTE>::iterator locte_it);
-      void processSHB(GNDataIndication_t dataIndication,Address address);
-      void processGBC(GNDataIndication_t dataIndication,Address address,uint8_t shape);
+      void processSHB(GNDataIndication_t dataIndication,Address address,uint32_t packetSize);
+      void processGBC(GNDataIndication_t dataIndication,Address address,uint8_t shape,uint32_t packetSize);
       uint8_t encodeLT(double seconds);
       double decodeLT(uint8_t lifeTime);
       bool hasNeighbour();
-      GNDataConfirm_t sendSHB(GNDataRequest_t dataRequest,GNCommonHeader commonHeader,GNBasicHeader basicHeader,GNlpv_t longPV);
-      GNDataConfirm_t sendGBC(GNDataRequest_t dataRequest,GNCommonHeader commonHeader,GNBasicHeader basicHeader,GNlpv_t longPV);
+      GNDataConfirm_t sendSHB(GNDataRequest_t dataRequest, GNCommonHeader commonHeader, GNBasicHeader basicHeader, GNlpv_t longPV, int &numbytes);
+      GNDataConfirm_t sendGBC(GNDataRequest_t dataRequest,GNCommonHeader commonHeader,GNBasicHeader basicHeader,GNlpv_t longPV, int &numbytes);
       GNDataConfirm_t sendBeacon(GNDataRequest_t dataRequest,GNCommonHeader commonHeader,GNBasicHeader basicHeader,GNlpv_t longPV);
       bool isInsideGeoArea(GeoArea_t geoArea);
       bool DPD(uint16_t seqNumber,GNAddress address);
@@ -91,7 +92,6 @@ namespace ns3
       void setBeacon();
       void saveRepPacket(GNDataRequest_t dataRequest);
       void maxRepIntTimeout(GNDataRequest_t dataRequest);
-
 
       std::map<GNAddress,GNLocTE> m_GNLocT;//! ETSI EN 302 636-4-1 [8.1]
       std::map<GNAddress,Timer> m_GNLocTTimer; //! Timer for every new entry in th Location Table
@@ -111,7 +111,7 @@ namespace ns3
 
       Ptr<Socket> m_socket_tx;
 
-      std::function<void(GNDataIndication_t,Address)> m_ReceiveCallback;
+      std::function<void(GNDataIndication_t,Address,uint32_t)> m_ReceiveCallback;
 
       VDP* m_vdp;
       StationID_t m_station_id;

@@ -53,15 +53,16 @@ namespace ns3
   btp::setSocketRx (Ptr<Socket> socket_rx)
   {
     socket_rx->SetRecvCallback (MakeCallback(&GeoNet::receiveGN, m_geonet));
-    m_geonet->addRxCallback(std::bind(&btp::receiveBTP,this,std::placeholders::_1,std::placeholders::_2));
+    m_geonet->addRxCallback(std::bind(&btp::receiveBTP,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
   }
 
-  void
+  int
   btp::sendBTP(BTPDataRequest_t dataRequest)
   {
     GNDataConfirm_t dataConfirm;
     GNDataRequest_t GnDataRequest = {};
     btpHeader header;
+    int numbytes;
     header.SetDestinationPort (dataRequest.destPort);
 
     if(dataRequest.BTPType==BTP_A) // BTP-A
@@ -88,16 +89,17 @@ namespace ns3
     GnDataRequest.data = dataRequest.data;
     GnDataRequest.lenght = dataRequest.lenght + 4;
 
-    dataConfirm = m_geonet->sendGN(GnDataRequest);
+    dataConfirm = m_geonet->sendGN(GnDataRequest,numbytes);
     if(dataConfirm != ACCEPTED)
     {
       NS_LOG_ERROR("GeoNet can't send packet. Error code: " << dataConfirm);
     }
 
+    return numbytes;
   }
 
   void
-  btp::receiveBTP(GNDataIndication_t dataIndication,Address address)
+  btp::receiveBTP(GNDataIndication_t dataIndication,Address address,uint32_t originalPacketSize)
   {
     btpHeader header;
     BTPDataIndication_t btpDataIndication = {};
@@ -123,11 +125,11 @@ namespace ns3
     btpDataIndication.lenght = dataIndication.data->GetSize ();
 
     if(btpDataIndication.destPort == CA_PORT)
-      m_cam_ReceiveCallback(btpDataIndication,address);
+      m_cam_ReceiveCallback(btpDataIndication,address,originalPacketSize);
     else if(btpDataIndication.destPort == DEN_PORT)
-      m_denm_ReceiveCallback(btpDataIndication,address);
+      m_denm_ReceiveCallback(btpDataIndication,address,originalPacketSize);
     else if(btpDataIndication.destPort == CE_PORT)
-      m_cem_ReceiveCallback(btpDataIndication,address);
+      m_cem_ReceiveCallback(btpDataIndication,address,originalPacketSize);
     else
       NS_LOG_ERROR("BTP : Unknown port");
   }

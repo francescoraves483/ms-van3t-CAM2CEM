@@ -217,7 +217,13 @@ namespace ns3 {
   }
 
   GNDataConfirm_t
-  GeoNet::sendGN (GNDataRequest_t dataRequest)
+  GeoNet::sendGN (GNDataRequest_t dataRequest) {
+    int numbytes;
+    return sendGN(dataRequest,numbytes);
+  }
+
+  GNDataConfirm_t
+  GeoNet::sendGN (GNDataRequest_t dataRequest, int &numbytes)
   {
     GNDataConfirm_t dataConfirm = ACCEPTED;
     GNBasicHeader basicHeader;
@@ -309,10 +315,10 @@ namespace ns3 {
       if(commonHeader.GetHeaderSubType ()==0) dataConfirm = sendBeacon (dataRequest,commonHeader,basicHeader,longPV);
       break;
     case GBC:
-      dataConfirm = sendGBC (dataRequest,commonHeader,basicHeader,longPV);
+      dataConfirm = sendGBC (dataRequest,commonHeader,basicHeader,longPV,numbytes);
       break;
     case TSB:
-      if(commonHeader.GetHeaderSubType ()==0) dataConfirm = sendSHB (dataRequest,commonHeader,basicHeader,longPV);
+      if(commonHeader.GetHeaderSubType ()==0) dataConfirm = sendSHB (dataRequest,commonHeader,basicHeader,longPV,numbytes);
       break;
     default:
       NS_LOG_ERROR("GeoNet packet not supported");
@@ -322,7 +328,7 @@ namespace ns3 {
   }
 
   GNDataConfirm_t
-  GeoNet::sendSHB (GNDataRequest_t dataRequest,GNCommonHeader commonHeader, GNBasicHeader basicHeader,GNlpv_t longPV)
+  GeoNet::sendSHB (GNDataRequest_t dataRequest,GNCommonHeader commonHeader, GNBasicHeader basicHeader,GNlpv_t longPV,int &numbytes)
   {
     SHBheader header;
     //1) Create SHB GN-PDU with SHB header setting according to ETSI EN 302 636-4-1 [10.3.10.2]
@@ -356,7 +362,8 @@ namespace ns3 {
       NS_LOG_ERROR("GeoNet: SOCKET NOT FOUND ");
       return UNSPECIFIED_ERROR;
     }
-    if(m_socket_tx->Send (dataRequest.data)<=0)
+    numbytes = m_socket_tx->Send (dataRequest.data);
+    if(numbytes<=0)
       {
         NS_LOG_ERROR("Cannot send SHB packet ");
         return UNSPECIFIED_ERROR;
@@ -370,7 +377,7 @@ namespace ns3 {
   }
 
   GNDataConfirm_t
-  GeoNet::sendGBC (GNDataRequest_t dataRequest,GNCommonHeader commonHeader, GNBasicHeader basicHeader,GNlpv_t longPV)
+  GeoNet::sendGBC (GNDataRequest_t dataRequest,GNCommonHeader commonHeader, GNBasicHeader basicHeader,GNlpv_t longPV,int &numbytes)
   {
     GBCheader header;
     //1) Create SHB GN-PDU with GBC header setting according to ETSI EN 302 636-4-1 [10.3.11.2]
@@ -414,8 +421,8 @@ namespace ns3 {
       NS_LOG_ERROR("GeoNet: SOCKET NOT FOUND ");
       return UNSPECIFIED_ERROR;
     }
-
-    if(m_socket_tx->Send (dataRequest.data)==-1)
+    numbytes = m_socket_tx->Send (dataRequest.data);
+    if(numbytes==-1)
     {
       NS_LOG_ERROR("Cannot send GBC packet ");
       return UNSPECIFIED_ERROR;
@@ -547,13 +554,13 @@ namespace ns3 {
       //Packet is not already stored
       m_Repetition_packets.emplace(dataRequest,std::pair<Timer,Timer>());
       //b)retransmit packet with a period as specified in the repetition interval parameter  until the maximim time of the packet is expired
-      GeoNet::setRepInt(std::get<0>(m_Repetition_packets[dataRequest]),MilliSeconds (dataRequest.GNRepInt),&GeoNet::sendGN,dataRequest);
+      GeoNet::setRepInt(std::get<0>(m_Repetition_packets[dataRequest]),MilliSeconds (dataRequest.GNRepInt),static_cast<GNDataConfirm_t (GeoNet::*)(GNDataRequest_t)>(&GeoNet::sendGN),dataRequest);
       GeoNet::setRepInt(std::get<1>(m_Repetition_packets[dataRequest]),MilliSeconds (dataRequest.GNMaxRepTime),&GeoNet::maxRepIntTimeout,dataRequest);
     }
     else
     {
       //Packet is already stored, reset repetition interval timer
-      GeoNet::setRepInt(std::get<0>(m_Repetition_packets[dataRequest]),MilliSeconds (dataRequest.GNRepInt),&GeoNet::sendGN,dataRequest);
+      GeoNet::setRepInt(std::get<0>(m_Repetition_packets[dataRequest]),MilliSeconds (dataRequest.GNRepInt),static_cast<GNDataConfirm_t (GeoNet::*)(GNDataRequest_t)>(&GeoNet::sendGN),dataRequest);
     }
   }
 
@@ -587,12 +594,16 @@ namespace ns3 {
     GNBasicHeader basicHeader;
     GNCommonHeader commonHeader;
 
+    uint32_t packetSize;
+
     if(m_stationtype==StationType_roadSideUnit && m_RSU_epv_set==false)
     {
       NS_FATAL_ERROR("Error: no position has been set for an RSU object. Please use setFixedPositionRSU() on the Facilities Layer object.");
     }
 
     dataIndication.data = socket->RecvFrom (from);
+
+    packetSize = dataIndication.data->GetSize ();
 
     dataIndication.data->RemoveHeader (basicHeader, 4);
     dataIndication.GNRemainingLife = basicHeader.GetLifeTime ();
@@ -630,13 +641,13 @@ namespace ns3 {
     switch(dataIndication.GNType)
     {
       case BEACON:
-        if(commonHeader.GetHeaderSubType ()==0) processSHB (dataIndication,from);
+        if(commonHeader.GetHeaderSubType ()==0) processSHB (dataIndication,from,packetSize);
         break;
       case GBC:
-          processGBC (dataIndication,from,commonHeader.GetHeaderSubType ());
+          processGBC (dataIndication,from,commonHeader.GetHeaderSubType (),packetSize);
         break;
       case TSB:
-        if((commonHeader.GetHeaderSubType ()==0)) processSHB (dataIndication,from);
+        if((commonHeader.GetHeaderSubType ()==0)) processSHB (dataIndication,from,packetSize);
         break;
       default:
         NS_LOG_ERROR("GeoNet packet not supported");
@@ -644,7 +655,7 @@ namespace ns3 {
   }
 
   void
-  GeoNet::processGBC (GNDataIndication_t dataIndication,Address from, uint8_t shape)
+  GeoNet::processGBC (GNDataIndication_t dataIndication,Address from, uint8_t shape, uint32_t packetSize)
   {
     // GBC Processing according to ETSI EN 302 636-4-1 [10.3.11.3] 1 and 2 already done in receiveGN method
     GBCheader header;
@@ -707,7 +718,7 @@ namespace ns3 {
       //a) Pass the payload to the upper protocol entity
       dataIndication.GNType = GBC;
       dataIndication.lenght = dataIndication.data->GetSize ();
-      m_ReceiveCallback(dataIndication,from);
+      m_ReceiveCallback(dataIndication,from,packetSize);
     }
     else
     {
@@ -748,7 +759,7 @@ namespace ns3 {
   }
 
   void
-  GeoNet::processSHB (GNDataIndication_t dataIndication, Address from)
+  GeoNet::processSHB (GNDataIndication_t dataIndication, Address from, uint32_t packetSize)
   {
     SHBheader shbHeader;
     BeaconHeader beaconHeader;
@@ -791,7 +802,7 @@ namespace ns3 {
     //7) Pass the payload to the upper protocol entity if it's not a beacon packet
     if(dataIndication.GNType != BEACON)
     {
-      m_ReceiveCallback(dataIndication,from);
+      m_ReceiveCallback(dataIndication,from,packetSize);
     }
   }
 

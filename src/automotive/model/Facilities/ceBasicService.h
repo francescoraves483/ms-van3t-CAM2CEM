@@ -40,14 +40,17 @@ namespace ns3
     void setGPSRawTraceClient(Ptr<GPSRawTraceClient> gps_raw_trace_client);
     void setBTP(Ptr<btp> btp){m_btp=btp;}
 
-    void receiveCem(BTPDataIndication_t dataIndication, Address from);
+    void receiveCem(BTPDataIndication_t dataIndication, Address from, uint32_t originalPacketSize);
     void addCERxCallback(std::function<void(CEM_t *, Address)> rx_callback) {m_CEReceiveCallback=rx_callback;}
     void setRealTime(bool real_time){m_real_time=real_time;}
+
+    uint64_t getBytesRx(){return m_bytes_received;}
 
     void startCemDissemination();
     void startCemDissemination(double desync_s);
 
     uint64_t terminateDissemination();
+    uint64_t terminateDissemination(uint64_t &bytes_tx,uint64_t &bytes_rx);
 
   private:
     const int m_fullPrecisionIDMax = 65535;
@@ -89,6 +92,9 @@ namespace ns3
     // Statistic: number of CEMs successfully sent since the CE Basic Service has been started
     // The CE Basic Service can count up to 18446744073709551615 (UINT64_MAX) CEMs
     uint64_t m_cem_sent;
+
+    uint64_t m_bytes_sent;
+    uint64_t m_bytes_received;
 
     // ns-3 event IDs used to properly stop the simulation with terminateDissemination()
     EventId m_event_cemDisseminationStart;

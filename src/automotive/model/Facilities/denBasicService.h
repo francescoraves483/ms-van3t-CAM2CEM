@@ -47,7 +47,7 @@ namespace ns3 {
     DENBasicService_error_t appDENM_trigger(denData data, ActionID_t &actionid);
     DENBasicService_error_t appDENM_update(denData data, const ActionID_t actionid);
     DENBasicService_error_t appDENM_termination(denData data, const ActionID_t actionid);
-    void receiveDENM(BTPDataIndication_t dataIndication, Address address);
+    void receiveDENM(BTPDataIndication_t dataIndication, Address address, uint32_t originalPacketSize);
 
     void setStationProperties(unsigned long fixed_stationid,long fixed_stationtype);
     void setFixedPositionRSU(double latitude_deg, double longitude_deg);

@@ -57,7 +57,17 @@ namespace ns3
             "Raw GNSS Data Trace Client (GPS-Raw-TC)",
             PointerValue (0),
             MakePointerAccessor (&simpleCAMSenderCEM::m_gps_raw_tc_client),
-            MakePointerChecker<GPSRawTraceClient> ());
+            MakePointerChecker<GPSRawTraceClient> ())
+        .AddAttribute ("DisseminationDelay",
+            "Delay in seconds after which the CAM and CEM dissemination should start",
+            DoubleValue (0.0),
+            MakeDoubleAccessor (&simpleCAMSenderCEM::m_dissemination_delay_seconds),
+            MakeDoubleChecker<double> ())
+        .AddAttribute ("TerminateAt",
+            "Instant in time at which the dissemination shall be terminated (-1 = disabled)",
+            DoubleValue (-1.0),
+            MakeDoubleAccessor (&simpleCAMSenderCEM::m_terminate_at),
+            MakeDoubleChecker<double> ());
         return tid;
   }
 
@@ -69,9 +79,17 @@ namespace ns3
     m_app_stopped = false;
 
     m_cam_sent = 0;
+    m_cem_sent = 0;
 
     m_rx_cem = 0;
     m_rx_cam = 0;
+
+    m_csv_stream_ptr = nullptr;
+
+    m_dissemination_delay_seconds = 0;
+
+    m_terminate_at = -1; // -1 means "do not terminate the dissemination unless the simulation has terminated"
+    m_terminate_at_triggered = false; // This flag becomes "true" when a "terminate_at" event has been triggered and the dissemination of CAMs and CEMs has already been terminated
   }
 
   simpleCAMSenderCEM::~simpleCAMSenderCEM ()
@@ -163,10 +181,29 @@ namespace ns3
     /* Schedule CAM dissemination */
     std::srand(std::hash<std::string>()(m_id));
     double desync = ((double)std::rand()/RAND_MAX);
-    m_caService.startCamDissemination(desync);
+    m_caService.startCamDissemination(m_dissemination_delay_seconds+desync);
 
     /* Schedule CEM dissemination (which will also start, in turn, the GPS Raw Trace Client Data dissemination */
-    m_ceService.startCemDissemination (desync/1e2);
+    m_ceService.startCemDissemination (m_dissemination_delay_seconds+(desync/1e2));
+
+    if(m_terminate_at > 0)
+    {
+        m_event_terminate_at = Simulator::Schedule (Seconds (m_terminate_at), &simpleCAMSenderCEM::stopDissemination, this);
+    }
+  }
+
+  void
+  simpleCAMSenderCEM::stopDissemination()
+  {
+    if(m_terminate_at_triggered == false)
+    {
+        m_gps_raw_tc_client->StopUpdates ();
+
+        m_cam_sent = m_caService.terminateDissemination (m_cam_bytes_tx,m_cam_bytes_rx);
+        m_cem_sent = m_ceService.terminateDissemination (m_cem_bytes_tx,m_cem_bytes_rx);
+
+        m_terminate_at_triggered = true;
+    }
   }
 
   void
@@ -176,20 +213,47 @@ namespace ns3
 
     if(m_app_stopped == false)
     {
-      uint64_t cam_sent, cem_sent;
+      if(m_terminate_at_triggered == false)
+      {
+          m_gps_raw_tc_client->StopUpdates ();
 
-      m_gps_raw_tc_client->StopUpdates ();
+          m_cam_sent = m_caService.terminateDissemination (m_cam_bytes_tx,m_cam_bytes_rx);
+          m_cem_sent = m_ceService.terminateDissemination (m_cem_bytes_tx,m_cem_bytes_rx);
 
-      cam_sent = m_caService.terminateDissemination ();
-      cem_sent = m_ceService.terminateDissemination ();
+          m_terminate_at_triggered = true; // Set this to true just to be sure to never call terminateDissemination() twice
+      }
+      else
+      {
+         m_cam_bytes_rx = m_caService.getBytesRx();
+         m_cem_bytes_rx = m_ceService.getBytesRx();
+      }
 
       std::cout << "Vehicle " << m_id
-                << " has sent " << cam_sent
-                << " CAMs and " << cem_sent
+                << " has sent " << m_cam_sent
+                << " CAMs and " << m_cem_sent
                 << " CEMs" << std::endl;
 
       std::cout << "Vehicle " << m_id
                 << " has received " << m_rx_cem << " CEMs and " << m_rx_cam << " CAMs." << std::endl;
+
+      std::cout << "Vehicle " << m_id
+                << " has sent " << m_cam_bytes_tx
+                << " bytes [CAM] and " << m_cem_bytes_tx
+                << " bytes [CEM]" << std::endl;
+
+      std::cout << "Vehicle " << m_id
+                << " has received " << m_cam_bytes_rx << " bytes [CAMs] and " << m_cem_bytes_rx << " bytes [CEMs]." << std::endl;
+
+      if(m_csv_stream_ptr!=nullptr)
+      {
+          (*m_csv_stream_ptr) << m_id << "," << m_rx_cam << "," << m_cam_sent << "," << m_cam_bytes_tx << "," << m_cam_bytes_rx << ","
+                              << m_rx_cem << "," << m_cem_sent << "," << m_cem_bytes_tx << "," << m_cem_bytes_rx << std::endl;
+      }
+
+      if(m_terminate_at > 0)
+      {
+         Simulator::Remove (m_event_terminate_at);
+      }
     }
 
     m_app_stopped = true;
