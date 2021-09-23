@@ -2,7 +2,7 @@
 
 ![](img/cam2cemlogo_private.png)
 
-This repository is a branch of the [ms-van3t](https://github.com/marcomali/ms-van3t) V2X simulation and emulation framework, with additional modules for testing a novel approach to the transmission of raw GNSS data between vehicles.
+This repository is a fork of the [ms-van3t](https://github.com/marcomali/ms-van3t) V2X simulation and emulation framework, with additional modules for testing a novel approach to the transmission of raw GNSS data between vehicles.
 
 In particular, this repository contains the first implementation of a proposed Cooperative Enhancement Basic Service (CE Basic Service), together with the definition of a new, ETSI-compatible, ASN1 V2X message, called CEM (Cooperative Enhancement Message - proposed messageID: *200*).
 
