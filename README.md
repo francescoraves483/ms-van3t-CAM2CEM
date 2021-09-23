@@ -22,7 +22,7 @@ A public version leveraging a real dataset of 19 vehicles and real, consistent, 
 
 ## IEEE 802.11p
 
-The IEEE 802.11p access technology sample application relies on V2V a scenario with eight regulated intersections. All the vehicles are configured to send both CAMs and CEMs.
+The IEEE 802.11p access technology sample application relies on a V2V scenario with eight regulated intersections. All the vehicles are configured to send both CAMs and CEMs.
 
 The simulation can be started with:
 
@@ -38,7 +38,7 @@ In this sample application, the transmission power has been set to a value such 
 
 ## C-V2X
 
-The 3GPP C-V2X Mode 4 access technology sample application relies on V2V a scenario with eight regulated intersections. All the vehicles are configured to send both CAMs and CEMs.
+The 3GPP C-V2X Mode 4 access technology sample application relies on a V2V scenario with eight regulated intersections. All the vehicles are configured to send both CAMs and CEMs.
 
 The simulation can be started with:
 
