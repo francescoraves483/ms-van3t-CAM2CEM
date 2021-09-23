@@ -5,7 +5,7 @@
 #include <map>
 #include "ns3/gps-raw-tc.h"
 
-#define GPS_RAW_TC_MAP_ITERATOR(mapname,itername) for(std::map<std::string,GPSRawTraceClient*>::iterator itername=mapname.begin(); itername!=mapname.end(); ++itername)
+#define GPS_RAW_TC_MAP_ITERATOR(mapname,itername) for(std::map<std::string,std::shared_ptr<GPSRawTraceClient>>::iterator itername=mapname.begin(); itername!=mapname.end(); ++itername)
 #define GPS_RAW_TC_IT_OBJECT(itername) itername->second
 
 namespace ns3 {
@@ -15,7 +15,9 @@ class GPSRawTraceClientHelper
     public:
       GPSRawTraceClientHelper();
 
-      std::map<std::string,GPSRawTraceClient*> createRawTraceClientsFromCSV(std::string filepath);
+      std::map<std::string,std::shared_ptr<GPSRawTraceClient>> createRawTraceClientsFromCSV(std::string filepath);
+
+      //void deleteTraceClients(std::map<std::string, GPSRawTraceClient *> &);
 
       // Set or unset a verbose mode
       // Default: false (verbose mode not activated)

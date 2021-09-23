@@ -29,6 +29,11 @@
 #include "ns3/network-module.h"
 #include "ns3/gn-utils.h"
 
+#include "ns3/cv2x_lte-net-device.h"
+#include "ns3/cv2x_lte-ue-phy.h"
+#include "ns3/net-device.h"
+#include "ns3/cv2x_lte-ue-net-device.h"
+
 namespace ns3
 {
   NS_LOG_COMPONENT_DEFINE("simpleCAMSenderCEM");
@@ -53,21 +58,31 @@ namespace ns3
             PointerValue (0),
             MakePointerAccessor (&simpleCAMSenderCEM::m_traci_client),
             MakePointerChecker<TraciClient> ())
-        .AddAttribute ("GPSRawClient",
-            "Raw GNSS Data Trace Client (GPS-Raw-TC)",
-            PointerValue (0),
-            MakePointerAccessor (&simpleCAMSenderCEM::m_gps_raw_tc_client),
-            MakePointerChecker<GPSRawTraceClient> ())
         .AddAttribute ("DisseminationDelay",
             "Delay in seconds after which the CAM and CEM dissemination should start",
             DoubleValue (0.0),
             MakeDoubleAccessor (&simpleCAMSenderCEM::m_dissemination_delay_seconds),
             MakeDoubleChecker<double> ())
+        .AddAttribute ("IpAddr",
+            "IpAddr",
+            Ipv4AddressValue ("10.0.0.1"),
+            MakeIpv4AddressAccessor (&simpleCAMSenderCEM::m_ipAddress),
+            MakeIpv4AddressChecker ())
+        .AddAttribute ("SendCEM",
+            "To enable CEM dissemination",
+            BooleanValue(true),
+            MakeBooleanAccessor (&simpleCAMSenderCEM::m_send_cem),
+            MakeBooleanChecker ())
         .AddAttribute ("TerminateAt",
             "Instant in time at which the dissemination shall be terminated (-1 = disabled)",
             DoubleValue (-1.0),
             MakeDoubleAccessor (&simpleCAMSenderCEM::m_terminate_at),
-            MakeDoubleChecker<double> ());
+            MakeDoubleChecker<double> ())
+        .AddAttribute ("Model",
+            "Physical and MAC layer communication model",
+            StringValue ("cv2x"),
+            MakeStringAccessor (&simpleCAMSenderCEM::m_model),
+            MakeStringChecker ());
         return tid;
   }
 
@@ -87,6 +102,7 @@ namespace ns3
     m_csv_stream_ptr = nullptr;
 
     m_dissemination_delay_seconds = 0;
+    m_send_cem=true;
 
     m_terminate_at = -1; // -1 means "do not terminate the dissemination unless the simulation has terminated"
     m_terminate_at_triggered = false; // This flag becomes "true" when a "terminate_at" event has been triggered and the dissemination of CAMs and CEMs has already been terminated
@@ -122,6 +138,7 @@ namespace ns3
         NS_FATAL_ERROR("No mobility client specified in simpleCAMSender");
     }
     m_id = m_traci_client->GetVehicleId (this->GetNode ());
+    std::cout << "veh_id:" << m_id << std::endl;
 
     // Create new BTP and GeoNet objects and set them in DENBasicService and CABasicService
     m_btp = CreateObject <btp>();
@@ -132,21 +149,41 @@ namespace ns3
     m_ceService.setBTP(m_btp);
 
     /* Create the socket for TX and RX */
-    TypeId tid = TypeId::LookupByName ("ns3::PacketSocketFactory");
+    TypeId tid;
+    if(m_model=="80211p")
+      tid = TypeId::LookupByName ("ns3::PacketSocketFactory");
+    else if(m_model=="cv2x")
+      tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
+    else
+      NS_FATAL_ERROR ("No communication model set - check simulation script - valid models: '80211p' or 'cv2x'");
+
+    // TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
     m_socket = Socket::CreateSocket (GetNode (), tid);
 
-    /* TX socket for CAMs and CEMs */
-    /* Bind the socket to local address */
-    PacketSocketAddress local = getGNAddress(GetNode ()->GetDevice (0)->GetIfIndex (),
-                                            GetNode ()->GetDevice (0)->GetAddress () );
-    if (m_socket->Bind (local) == -1)
+    if(m_model=="80211p")
     {
-      NS_FATAL_ERROR ("Failed to bind client socket for BTP + GeoNetworking (802.11p)");
+        /* Bind the socket to local address */
+        PacketSocketAddress local = getGNAddress(GetNode ()->GetDevice (0)->GetIfIndex (),
+                                                GetNode ()->GetDevice (0)->GetAddress () );
+        if (m_socket->Bind (local) == -1)
+        {
+          NS_FATAL_ERROR ("Failed to bind client socket for BTP + GeoNetworking (802.11p)");
+        }
+        // Set the socketAddress for broadcast
+        PacketSocketAddress remote = getGNAddress(GetNode ()->GetDevice (0)->GetIfIndex (),
+                                                GetNode ()->GetDevice (0)->GetBroadcast () );
+        m_socket->Connect (remote);
     }
-    // Set the socketAddress for broadcast
-    PacketSocketAddress remote = getGNAddress(GetNode ()->GetDevice (0)->GetIfIndex (),
-                                            GetNode ()->GetDevice (0)->GetBroadcast () );
-    m_socket->Connect (remote);
+    else if (m_model=="cv2x")
+    {
+      /* TX socket for CAMs and CEMs */
+      /* Bind the socket to local address */
+      if (m_socket->Bind (InetSocketAddress (Ipv4Address::GetAny (), 19)) == -1)
+      {
+        NS_FATAL_ERROR ("Failed to bind client socket for C-V2X");
+      }
+      m_socket->Connect (InetSocketAddress(m_ipAddress,19));
+    }
 
     /* Set sockets, callback and station properties in DENBasicService */
     m_denService.setSocketTx (m_socket);
@@ -179,16 +216,24 @@ namespace ns3
     m_ceService.setGPSRawTraceClient(m_gps_raw_tc_client);
 
     /* Schedule CAM dissemination */
-    std::srand(std::hash<std::string>()(m_id));
+    std::srand(std::hash<std::string>()(m_id)+Simulator::Now().GetNanoSeconds ());
     double desync = ((double)std::rand()/RAND_MAX);
+
     m_caService.startCamDissemination(m_dissemination_delay_seconds+desync);
 
+    desync = ((double)std::rand()/RAND_MAX);
+
     /* Schedule CEM dissemination (which will also start, in turn, the GPS Raw Trace Client Data dissemination */
-    m_ceService.startCemDissemination (m_dissemination_delay_seconds+(desync/1e2));
+    if (m_send_cem)
+    {
+        m_ceService.startCemDissemination (m_dissemination_delay_seconds+(desync));
+    }
+
 
     if(m_terminate_at > 0)
     {
-        m_event_terminate_at = Simulator::Schedule (Seconds (m_terminate_at), &simpleCAMSenderCEM::stopDissemination, this);
+        // Schedule() scheduled AFTER some time, not AT some time, thus to terminate at a specific time, we need to use "Seconds (m_terminate_at) - Simulator::Now"
+        m_event_terminate_at = Simulator::Schedule (Seconds (m_terminate_at) - Simulator::Now(), &simpleCAMSenderCEM::stopDissemination, this);
     }
   }
 
@@ -204,6 +249,8 @@ namespace ns3
 
         m_terminate_at_triggered = true;
     }
+
+    std::cout<<"Dissemination for vehicle "<<m_id<<" terminated."<<std::endl;
   }
 
   void
@@ -284,6 +331,8 @@ namespace ns3
   void
   simpleCAMSenderCEM::receiveCEM (CEM_t *cem, Address from)
   {
+    std::cout << "N applications:" << GetNode()->GetNApplications () << std::endl;
+
     /* Implement CEM strategy here */
     std::cout << "[ " << m_id << "] Received a new CEM from " << cem->header.stationID << ". Type: ";
 

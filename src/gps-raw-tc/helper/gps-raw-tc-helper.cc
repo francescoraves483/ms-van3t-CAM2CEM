@@ -57,7 +57,7 @@ namespace ns3 {
         m_numVehicles = 0;
     }
 
-    std::map<std::string,GPSRawTraceClient*>
+    std::map<std::string,std::shared_ptr<GPSRawTraceClient>>
     GPSRawTraceClientHelper::createRawTraceClientsFromCSV(std::string filepath)
     {
       // Variables to read the file
@@ -70,7 +70,7 @@ namespace ns3 {
 
       // Variables to scan each row of the file
       std::string currentVehId;
-      std::map<std::string,GPSRawTraceClient*> m_GPSRawTraceClient;
+      std::map<std::string,std::shared_ptr<GPSRawTraceClient>> m_GPSRawTraceClient;
 
       if(m_numVehicles == 0 && m_singletrace == true)
       {
@@ -92,7 +92,7 @@ namespace ns3 {
       {
           for(int i=0;i<m_numVehicles;i++)
           {
-              GPSRawTraceClient* gpsrawclient = new GPSRawTraceClient(std::to_string(i));
+              std::shared_ptr<GPSRawTraceClient> gpsrawclient = std::shared_ptr<GPSRawTraceClient>(new GPSRawTraceClient(std::to_string(i)));
               m_GPSRawTraceClient.insert(std::make_pair(std::to_string(i), gpsrawclient));
           }
       }
@@ -115,7 +115,7 @@ namespace ns3 {
           // Otherwise, if m_singletrace is true, the same Raw GPS Data trace will be used for all the vehicles (and m_numVehicles will be considered)
           if (m_singletrace == false && m_GPSRawTraceClient.find(currentVehId) == m_GPSRawTraceClient.end() ) {
               // Not found - needed to create the entry for such a vector
-              GPSRawTraceClient* gpsrawclient = new GPSRawTraceClient(currentVehId);
+              std::shared_ptr<GPSRawTraceClient> gpsrawclient = std::shared_ptr<GPSRawTraceClient>(new GPSRawTraceClient(currentVehId));
               m_GPSRawTraceClient.insert(std::make_pair(currentVehId, gpsrawclient));
           }
 

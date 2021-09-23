@@ -22,13 +22,18 @@
 #include "ns3/automotive-module.h"
 #include "ns3/gps-tc-module.h"
 #include "ns3/gps-raw-tc-module.h"
+#include "ns3/cv2x_lte-v2x-helper.h"
+#include "ns3/config-store.h"
 #include "ns3/internet-module.h"
-#include "ns3/wave-module.h"
+#include "ns3/cv2x-module.h"
 #include "ns3/mobility-module.h"
-#include "ns3/packet-socket-helper.h"
+#include <ns3/node-list.h>
+
+#include <ns3/flow-monitor.h>
+#include <ns3/flow-monitor-helper.h>
 
 using namespace ns3;
-NS_LOG_COMPONENT_DEFINE("v2v-80211p-gps-raw-tc-example");
+NS_LOG_COMPONENT_DEFINE("v2v-cv2x-gps-raw-tc-example");
 
 int
 main (int argc, char *argv[])
@@ -47,10 +52,6 @@ main (int argc, char *argv[])
    * example with the "--vis" option.
    */
 
-  // Admitted data rates for 802.11p
-  std::vector<float> rate_admitted_values{3,4.5,6,9,12,18,24,27};
-  std::string datarate_config;
-
   /*** 0.a App Options ***/
   std::string sumo_folder = "src/automotive/examples/sumo_files_v2i_map/";
   std::string mob_trace = "cars.rou.xml";
@@ -63,8 +64,6 @@ main (int argc, char *argv[])
 
   bool verbose = false;
   bool realtime = false;
-  int txPower=42;
-  float datarate=12;
 
   bool sumo_gui = true;
   double sumo_updates = 0.01;
@@ -76,6 +75,22 @@ main (int argc, char *argv[])
   uint32_t nodeCounter = 0;
 
   double dissemination_delay = 0.0;
+  bool send_cem = true;
+
+  /*** 0.b LENA + V2X Options ***/
+  double ueTxPower = 42.0;                // Transmission power in dBm
+  double probResourceKeep = 0.4;          // Probability to select the previous resource again [0.0-0.8]
+  uint32_t mcs = 20;                      // Modulation and Coding Scheme
+  bool harqEnabled = false;               // Retransmission enabled (harq not available yet)
+  bool adjacencyPscchPssch = true;        // Subchannelization scheme
+  bool partialSensing = false;            // Partial sensing enabled (actual only partialSensing is false supported)
+  uint16_t sizeSubchannel = 10;           // Number of RBs per subchannel
+  uint16_t numSubchannel = 3;             // Number of subchannels per subframe
+  uint16_t startRbSubchannel = 0;         // Index of first RB corresponding to subchannelization
+  uint16_t pRsvp = 20;                    // Resource reservation interval
+  uint16_t t1 = 4;                        // T1 value of selection window
+  uint16_t t2 = 100;                      // T2 value of selection window
+  uint16_t slBandwidth;                   // Sidelink bandwidth
 
   CommandLine cmd;
 
@@ -91,33 +106,26 @@ main (int argc, char *argv[])
   cmd.AddValue ("csv-prefix", "Prefix for the CSV file name for logging", csv_prefix);
   cmd.AddValue ("dissemination-delay", "Delay, in seconds, after which the CAM and CEM dissemination can start", dissemination_delay);
   cmd.AddValue ("dissemination-terminate-at", "Instant in time at which the dissemination shall be terminated (-1 = disabled, i.e. terminate when the simulation terminates)", terminateAt);
+  cmd.AddValue ("send-cem", "If true, CEMs will be disseminated", send_cem);
 
   cmd.AddValue ("raw-trace-folder","Position of Raw GNSS data trace files",raw_trace_file_path);
   cmd.AddValue ("gps-raw-trace", "Name of the Raw GNSS Data trace file", gps_raw_trace);
 
-  /* Cmd Line option for 802.11p */
-  cmd.AddValue ("tx-power", "OBUs transmission power [dBm]", txPower);
-  cmd.AddValue ("datarate", "802.11p channel data rate [Mbit/s]", datarate);
+  /* Cmd Line option for v2x */
+  cmd.AddValue ("tx-power", "UEs transmission power [dBm]", ueTxPower);
+  cmd.AddValue ("adjacencyPscchPssch", "Scheme for subchannelization", adjacencyPscchPssch);
+  cmd.AddValue ("sizeSubchannel", "Number of RBs per Subchannel", sizeSubchannel);
+  cmd.AddValue ("numSubchannel", "Number of Subchannels", numSubchannel);
+  cmd.AddValue ("startRbSubchannel", "Index of first subchannel index", startRbSubchannel);
+  cmd.AddValue ("T1", "T1 Value of Selection Window", t1);
+  cmd.AddValue ("T2", "T2 Value of Selection Window", t2);
+  cmd.AddValue ("mcs", "Modulation and Coding Scheme", mcs);
+  cmd.AddValue ("pRsvp", "Resource Reservation Interval", pRsvp);
+  cmd.AddValue ("probResourceKeep", "Probability for selecting previous resource again", probResourceKeep);
 
   cmd.AddValue("sim-time", "Total duration of the simulation [s]", simTime);
 
   cmd.Parse (argc, argv);
-
-  if(std::find(rate_admitted_values.begin(), rate_admitted_values.end(), datarate) == rate_admitted_values.end())
-    {
-      NS_FATAL_ERROR("Fatal error: invalid 802.11p data rate" << datarate << "Mbit/s. Valid rates are: 3, 4.5, 6, 9, 12, 18, 24, 27 Mbit/s.");
-    }
-  else
-    {
-      if(datarate==4.5)
-        {
-          datarate_config = "OfdmRate4_5MbpsBW10MHz";
-        }
-      else
-        {
-          datarate_config = "OfdmRate" + std::to_string((int)datarate) + "MbpsBW10MHz";
-        }
-    }
 
   if (verbose)
     {
@@ -125,6 +133,45 @@ main (int argc, char *argv[])
       LogComponentEnable ("CABasicService", LOG_LEVEL_INFO);
       LogComponentEnable ("DENBasicService", LOG_LEVEL_INFO);
     }
+
+  NS_LOG_INFO("Configuring C-V2X channel...");
+  /*** 0.c V2X Configurations ***/
+  /* Set the UEs power in dBm */
+  Config::SetDefault ("ns3::cv2x_LteUePhy::TxPower", DoubleValue (ueTxPower));
+  Config::SetDefault ("ns3::cv2x_LteUePhy::RsrpUeMeasThreshold", DoubleValue (-10.0));
+  /* Enable V2X communication on PHY layer */
+  Config::SetDefault ("ns3::cv2x_LteUePhy::EnableV2x", BooleanValue (true));
+
+  /* Set power */
+  Config::SetDefault ("ns3::cv2x_LteUePowerControl::Pcmax", DoubleValue (ueTxPower));
+  Config::SetDefault ("ns3::cv2x_LteUePowerControl::PsschTxPower", DoubleValue (ueTxPower));
+  Config::SetDefault ("ns3::cv2x_LteUePowerControl::PscchTxPower", DoubleValue (ueTxPower));
+
+  if (adjacencyPscchPssch)
+  {
+      slBandwidth = sizeSubchannel * numSubchannel;
+  }
+  else
+  {
+      slBandwidth = (sizeSubchannel+2) * numSubchannel;
+  }
+
+  /* Configure for UE selected */
+  Config::SetDefault ("ns3::cv2x_LteUeMac::UlBandwidth", UintegerValue (slBandwidth));
+  Config::SetDefault ("ns3::cv2x_LteUeMac::EnableV2xHarq", BooleanValue (harqEnabled));
+  Config::SetDefault ("ns3::cv2x_LteUeMac::EnableAdjacencyPscchPssch", BooleanValue (adjacencyPscchPssch));
+  Config::SetDefault ("ns3::cv2x_LteUeMac::EnablePartialSensing", BooleanValue (partialSensing));
+  Config::SetDefault ("ns3::cv2x_LteUeMac::SlGrantMcs", UintegerValue (mcs));
+  Config::SetDefault ("ns3::cv2x_LteUeMac::SlSubchannelSize", UintegerValue (sizeSubchannel));
+  Config::SetDefault ("ns3::cv2x_LteUeMac::SlSubchannelNum", UintegerValue (numSubchannel));
+  Config::SetDefault ("ns3::cv2x_LteUeMac::SlStartRbSubchannel", UintegerValue (startRbSubchannel));
+  Config::SetDefault ("ns3::cv2x_LteUeMac::SlPrsvp", UintegerValue (pRsvp));
+  Config::SetDefault ("ns3::cv2x_LteUeMac::SlProbResourceKeep", DoubleValue (probResourceKeep));
+  Config::SetDefault ("ns3::cv2x_LteUeMac::SelectionWindowT1", UintegerValue (t1));
+  Config::SetDefault ("ns3::cv2x_LteUeMac::SelectionWindowT2", UintegerValue (t2));
+
+  ConfigStore inputConfig;
+  inputConfig.ConfigureDefaults();
 
   /* Use the realtime scheduler of ns3 */
   if(realtime)
@@ -149,6 +196,29 @@ main (int argc, char *argv[])
       NS_FATAL_ERROR("Fatal error: cannot gather the number of vehicles from the specified XML file: "<<path<<". Please check if it is a correct SUMO file.");
     }
   NS_LOG_INFO("The .rou file has been read: " << numberOfNodes << " vehicles will be present in the simulation.");
+
+  /*** 1. Create LTE objects   ***/
+  Ptr<cv2x_PointToPointEpcHelper>  epcHelper = CreateObject<cv2x_PointToPointEpcHelper> ();
+  Ptr<cv2x_LteHelper> lteHelper = CreateObject<cv2x_LteHelper> ();
+  lteHelper->SetEpcHelper (epcHelper);
+
+  // Disable eNBs for out-of-coverage modelling
+  lteHelper->DisableNewEnbPhy();
+
+  /* V2X */
+  Ptr<cv2x_LteV2xHelper> lteV2xHelper = CreateObject<cv2x_LteV2xHelper> ();
+  lteV2xHelper->SetLteHelper (lteHelper);
+
+  /* Configure eNBs' antenna parameters before deploying them. */
+  lteHelper->SetEnbAntennaModelType ("ns3::cv2x_NistParabolic3dAntennaModel");
+  lteHelper->SetAttribute ("UseSameUlDlPropagationCondition", BooleanValue(true));
+  Config::SetDefault ("ns3::cv2x_LteEnbNetDevice::UlEarfcn", StringValue ("54990")); // EARFCN 54990 -> 5855-5890-5925 MHz
+  lteHelper->SetAttribute ("PathlossModel", StringValue ("ns3::cv2x_CniUrbanmicrocellPropagationLossModel"));
+  NS_LOG_INFO("Antenna parameters set. Current EARFCN: 54990, current frequency: 5.89 GHz");
+
+  /*** 2. Create Internet and ipv4 helpers ***/
+  InternetStackHelper internet;
+  Ipv4StaticRoutingHelper ipv4RoutingHelper;
 
   // std::map<std::string,GPSTraceClient*> GPSTCMap; // [old line of code for using GPS-tc instead of SUMO]
   std::map<std::string,std::shared_ptr<GPSRawTraceClient>> GPSRawTCMap;
@@ -181,36 +251,139 @@ main (int argc, char *argv[])
 
   /*** 1. Create containers for OBUs ***/
   NodeContainer obuNodes;
+  NodeContainer enbNodes;
+  enbNodes.Create(1);
   obuNodes.Create(numberOfNodes);
-
-  /*** 2. Create and setup channel   ***/
-  YansWifiPhyHelper wifiPhy;
-  wifiPhy.Set ("TxPowerStart", DoubleValue (txPower));
-  wifiPhy.Set ("TxPowerEnd", DoubleValue (txPower));
-  NS_LOG_INFO("Setting up the 802.11p channel @ " << datarate << " Mbit/s, 10 MHz, and tx power " << (int)txPower << " dBm.");
-
-  YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default ();
-  Ptr<YansWifiChannel> channel = wifiChannel.Create ();
-  wifiPhy.SetChannel (channel);
-  /* To be removed when BTP is implemented */
-  //Config::SetDefault ("ns3::ArpCache::DeadTimeout", TimeValue (Seconds (1)));
-
-  /*** 3. Create and setup MAC ***/
-  wifiPhy.SetPcapDataLinkType (YansWifiPhyHelper::DLT_IEEE802_11);
-  NqosWaveMacHelper wifi80211pMac = NqosWaveMacHelper::Default ();
-  Wifi80211pHelper wifi80211p = Wifi80211pHelper::Default ();
-  wifi80211p.SetRemoteStationManager ("ns3::ConstantRateWifiManager", "DataMode", StringValue (datarate_config), "ControlMode", StringValue (datarate_config));
-  wifi80211p.EnableLogComponents ();
-  NetDeviceContainer netDevices = wifi80211p.Install (wifiPhy, wifi80211pMac, obuNodes);
-  wifiPhy.EnablePcapAll ("CEMTraces"); // Uncomment this to create .pcap files with the exchanged CAM/CEM/... messages
-
-  /*** 4. Create Internet and ipv4 helpers ***/
-  PacketSocketHelper packetSocket;
-  packetSocket.Install (obuNodes);
 
   /*** 5. Setup Mobility and position node pool ***/
   MobilityHelper mobility;
   mobility.Install (obuNodes);
+  mobility.Install(enbNodes);
+
+  /* Set the eNB to a fixed position */
+  Ptr<MobilityModel> mobilityeNBn = enbNodes.Get (0)->GetObject<MobilityModel> ();
+  mobilityeNBn->SetPosition (Vector (0, 0, 20.0)); // set eNB to fixed position - it is still disabled
+
+  /*** 5. Install LTE Devices to the nodes + assign IP to UEs + manage buildings ***/
+  lteHelper->InstallEnbDevice (enbNodes); // If you don't do it, the simulation crashes
+
+  /* Required to use NIST 3GPP model */
+  BuildingsHelper::Install (obuNodes);
+  BuildingsHelper::Install (enbNodes);
+  // BuildingsHelper::MakeMobilityModelConsistent (); Removed because DEPRECATED from 3.31
+  for (NodeList::Iterator nit = NodeList::Begin (); nit != NodeList::End (); ++nit)
+    {
+      Ptr<MobilityModel> mm = (*nit)->GetObject<MobilityModel> ();
+      if (mm != 0)
+        {
+          Ptr<MobilityBuildingInfo> bmm = mm->GetObject<MobilityBuildingInfo> ();
+          NS_ABORT_MSG_UNLESS (0 != bmm, "node " << (*nit)->GetId () << " has a MobilityModel that does not have a MobilityBuildingInfo");
+          bmm->MakeConsistent (mm);
+        }
+    }
+
+  lteHelper->SetAttribute("UseSidelink", BooleanValue (true));
+  NetDeviceContainer ueLteDevs = lteHelper->InstallUeDevice (obuNodes);
+
+  /* Install the IP stack on the UEs */
+  internet.Install (obuNodes);
+  Ipv4InterfaceContainer ueIpIface;
+
+  /* Assign IP address to UEs */
+  ueIpIface = epcHelper->AssignUeIpv4Address (NetDeviceContainer (ueLteDevs));
+  for (uint32_t u = 0; u < obuNodes.GetN (); ++u)
+    {
+      Ptr<Node> ueNode = obuNodes.Get (u);
+      /* Set the default gateway for the UE */
+      Ptr<Ipv4StaticRouting> ueStaticRouting = ipv4RoutingHelper.GetStaticRouting (ueNode->GetObject<Ipv4> ());
+      ueStaticRouting->SetDefaultRoute (epcHelper->GetUeDefaultGatewayAddress (), 1);
+
+      NS_LOG_INFO("Node "<< ueNode->GetId () << " has been assigned an IP address: " << ueNode->GetObject<Ipv4> ()->GetAddress(1,0).GetLocal());
+    }
+
+  NS_LOG_INFO("Configuring sidelink...");
+
+  /* Create sidelink groups */
+  std::vector<NetDeviceContainer> txGroups;
+  txGroups = lteV2xHelper->AssociateForV2xBroadcast(ueLteDevs, numberOfNodes);
+
+  /* Compute average number of receivers associated per transmitter and vice versa */
+  std::map<uint32_t, uint32_t> txPerUeMap;
+  std::map<uint32_t, uint32_t> groupsPerUe;
+  std::vector<NetDeviceContainer>::iterator gIt;
+  for(gIt=txGroups.begin(); gIt != txGroups.end(); gIt++)
+      {
+          uint32_t numDevs = gIt->GetN();
+
+          uint32_t nId;
+
+          for(uint32_t i=1; i< numDevs; i++)
+              {
+                  nId = gIt->Get(i)->GetNode()->GetId();
+                  txPerUeMap[nId]++;
+              }
+      }
+
+  std::map<uint32_t, uint32_t>::iterator mIt;
+  for(mIt=txPerUeMap.begin(); mIt != txPerUeMap.end(); mIt++)
+      {
+          groupsPerUe [mIt->second]++;
+      }
+
+  std::vector<uint32_t> groupL2Addresses;
+  uint32_t groupL2Address = 0x00;
+  std::vector<Ipv4Address> ipAddresses;
+  Ipv4AddressGenerator::Init(Ipv4Address ("225.0.0.0"), Ipv4Mask ("255.0.0.0"));
+  Ipv4Address clientRespondersAddress = Ipv4AddressGenerator::NextAddress (Ipv4Mask ("255.0.0.0"));
+  NetDeviceContainer activeTxUes;
+
+
+  for(gIt=txGroups.begin(); gIt != txGroups.end(); gIt++)
+      {
+          /* Create Sidelink bearers */
+          NetDeviceContainer txUe ((*gIt).Get(0));
+          activeTxUes.Add(txUe);
+          NetDeviceContainer rxUes = lteV2xHelper->RemoveNetDevice ((*gIt), txUe.Get (0));
+          Ptr<cv2x_LteSlTft> tft = Create<cv2x_LteSlTft> (cv2x_LteSlTft::TRANSMIT, clientRespondersAddress, groupL2Address);
+          lteV2xHelper->ActivateSidelinkBearer (Seconds(0.0), txUe, tft);
+          tft = Create<cv2x_LteSlTft> (cv2x_LteSlTft::RECEIVE, clientRespondersAddress, groupL2Address);
+          lteV2xHelper->ActivateSidelinkBearer (Seconds(0.0), rxUes, tft);
+
+          /* store and increment addresses */
+          groupL2Addresses.push_back (groupL2Address);
+          ipAddresses.push_back (clientRespondersAddress);
+          groupL2Address++;
+          clientRespondersAddress = Ipv4AddressGenerator::NextAddress (Ipv4Mask ("255.0.0.0"));
+      }
+
+  /* Creating sidelink configuration */
+  Ptr<cv2x_LteUeRrcSl> ueSidelinkConfiguration = CreateObject<cv2x_LteUeRrcSl>();
+  ueSidelinkConfiguration->SetSlEnabled(true);
+  ueSidelinkConfiguration->SetV2xEnabled(true);
+
+  cv2x_LteRrcSap::SlV2xPreconfiguration preconfiguration;
+  preconfiguration.v2xPreconfigFreqList.freq[0].v2xCommPreconfigGeneral.carrierFreq = 54890;
+  preconfiguration.v2xPreconfigFreqList.freq[0].v2xCommPreconfigGeneral.slBandwidth = slBandwidth;
+
+  preconfiguration.v2xPreconfigFreqList.freq[0].v2xCommTxPoolList.nbPools = 1;
+  preconfiguration.v2xPreconfigFreqList.freq[0].v2xCommRxPoolList.nbPools = 1;
+
+  cv2x_SlV2xPreconfigPoolFactory pFactory;
+  pFactory.SetHaveUeSelectedResourceConfig (true);
+  pFactory.SetSlSubframe (std::bitset<20> (0xFFFFF));
+  pFactory.SetAdjacencyPscchPssch (adjacencyPscchPssch);
+  pFactory.SetSizeSubchannel (sizeSubchannel);
+  pFactory.SetNumSubchannel (numSubchannel);
+  pFactory.SetStartRbSubchannel (startRbSubchannel);
+  pFactory.SetStartRbPscchPool (0);
+  pFactory.SetDataTxP0 (-4);
+  pFactory.SetDataTxAlpha (0.9);
+
+  preconfiguration.v2xPreconfigFreqList.freq[0].v2xCommTxPoolList.pools[0] = pFactory.CreatePool ();
+  preconfiguration.v2xPreconfigFreqList.freq[0].v2xCommRxPoolList.pools[0] = pFactory.CreatePool ();
+  ueSidelinkConfiguration->SetSlV2xPreconfiguration (preconfiguration);
+
+  lteHelper->InstallSidelinkV2xConfiguration (ueLteDevs, ueSidelinkConfiguration);
 
   /*** 6. Setup Traci and start SUMO ***/
   Ptr<TraciClient> sumoClient = CreateObject<TraciClient> ();
@@ -231,6 +404,7 @@ main (int argc, char *argv[])
   simpleCAMSenderCEMHelper SimpleCAMSenderCEMHelper;
   SimpleCAMSenderCEMHelper.SetAttribute ("TraCIClient", PointerValue(sumoClient));
   SimpleCAMSenderCEMHelper.SetAttribute ("RealTime", BooleanValue(realtime));
+  SimpleCAMSenderCEMHelper.SetAttribute ("SendCEM", BooleanValue(send_cem));
 
   // Create vector with the GPS Trace Client map values
   // [old lines of code for using GPS-tc instead of SUMO]
@@ -271,8 +445,9 @@ main (int argc, char *argv[])
       {
           SimpleCAMSenderCEMHelper.SetAttribute ("TerminateAt", DoubleValue(terminateAt));
       }
+      SimpleCAMSenderCEMHelper.SetAttribute ("IpAddr", Ipv4AddressValue(ipAddresses[i]));
       i++;
-      SimpleCAMSenderCEMHelper.SetAttribute ("Model", StringValue("80211p"));
+      SimpleCAMSenderCEMHelper.SetAttribute ("Model", StringValue("cv2x"));
       ApplicationContainer setupAppSimpleSender = SimpleCAMSenderCEMHelper.Install (includedNode);
 
       setupAppSimpleSender.Get (0)->GetObject<simpleCAMSenderCEM>()->setCSVOfstream(&csv_filestream);
@@ -354,6 +529,7 @@ main (int argc, char *argv[])
   Simulator::Stop (simulationTime);
 
   Simulator::Run ();
+
   Simulator::Destroy ();
 
   csv_filestream.close();

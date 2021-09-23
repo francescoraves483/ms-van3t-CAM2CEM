@@ -1,3 +1,8 @@
+# CAM2CEM version logs
+valgrind-out.txt
+simulation_log.txt
+simulation_no_cem_log.txt
+
 # Main src wscript
 /src/wscript
 

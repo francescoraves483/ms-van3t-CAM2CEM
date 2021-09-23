@@ -33,7 +33,6 @@ namespace ns3
   {
       //ctor
       m_lastvehicledataidx=0;
-      m_startTrace=nullptr;
       m_endTrace=nullptr;
       m_vehNode=nullptr;
       m_vehID=vehID;
@@ -43,9 +42,10 @@ namespace ns3
   GPSRawTraceClient::~GPSRawTraceClient()
   {
       m_lastvehicledataidx=0;
-      m_startTrace=nullptr;
       m_endTrace=nullptr;
       m_frame_callback=nullptr;
+      //vehiclesdata.clear();
+      //vehiclesdata.shrink_to_fit();
   }
 
   std::string
@@ -108,9 +108,9 @@ namespace ns3
   }
 
   void
-  GPSRawTraceClient::GPSRawTraceClientSetup(std::function<Ptr<Node>()> start_fcn,std::function<void(Ptr<Node>)> end_fcn)
+  GPSRawTraceClient::GPSRawTraceClientSetup(Ptr<Node> veh_node,std::function<void(Ptr<Node>)> end_fcn)
   {
-      m_startTrace=start_fcn;
+      m_vehNode = veh_node;
       m_endTrace=end_fcn;
   }
 
@@ -128,9 +128,10 @@ namespace ns3
   void
   GPSRawTraceClient::CreateNode()
   {
-      if(m_startTrace != nullptr)
+      // Do not start "playing" any trace if no node has been associated with this GPS Raw Trace Client instance
+      if(m_vehNode == nullptr)
       {
-        m_vehNode=m_startTrace();
+          return;
       }
 
       // First position update
@@ -161,7 +162,7 @@ namespace ns3
           m_vehNode=nullptr;
         }
 
-        NS_LOG_INFO("Raw Trace terminated for vehicle/object with ID: "<<m_vehID);
+        std::cout << "Raw Trace terminated for vehicle/object with ID: "<<m_vehID << std::endl;
 
         return;
       }

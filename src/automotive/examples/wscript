@@ -22,3 +22,5 @@ def build(bld):
     obj = bld.create_ns3_program('v2v-80211p-gps-raw-tc-example', ['automotive', 'wave', 'gps-tc', 'gps-raw-tc'])
     obj.source = 'v2v-80211p-gps-raw-tc-example.cc'
 
+    obj = bld.create_ns3_program('v2v-cv2x-gps-raw-tc-example', ['automotive', 'cv2x', 'gps-tc', 'gps-raw-tc', 'flow-monitor'])
+    obj.source = 'v2v-cv2x-gps-raw-tc-example.cc'

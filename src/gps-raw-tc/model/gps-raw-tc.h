@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <variant>
+#include <memory>
 
 #include "ns3/core-module.h"
 #include "ns3/node.h"
@@ -74,7 +75,7 @@ namespace ns3 {
           void playTrace(Time const &delay);
 
           // Set the functions to create/destroy node
-          void GPSRawTraceClientSetup(std::function<Ptr<Node>()> start_fcn,std::function<void(Ptr<Node>)> end_fcn);
+          void GPSRawTraceClientSetup(Ptr<Node> veh_node,std::function<void(Ptr<Node>)> end_fcn);
 
           // Stop "playing" the trace
           void StopUpdates();
@@ -91,7 +92,6 @@ namespace ns3 {
           std::string m_vehID;
 
           // Function pointers to the start/end trace callbacks
-          std::function<Ptr<Node>()> m_startTrace;
           std::function<void(Ptr<Node>)> m_endTrace;
 
           void UpdateRawData();

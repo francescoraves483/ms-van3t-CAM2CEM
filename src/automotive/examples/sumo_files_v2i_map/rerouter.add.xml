@@ -161,74 +161,74 @@
     </rerouter>
 		<rerouter id="rerouter_12" edges="w_to_n1" probability="100.00">
         <interval begin="0.00" end="1000000.00">
-            <routeProbReroute id="042" probability="50.00"/>
-            <routeProbReroute id="043" probability="50.00"/>
+            <routeProbReroute id="042" probability="20.00"/>
+            <routeProbReroute id="043" probability="80.00"/>
         </interval>
     </rerouter>
     <rerouter id="rerouter_13" edges="n1_to_n2" probability="100.00">
         <interval begin="0.00" end="1000000.00">
-            <routeProbReroute id="044" probability="50.00"/>
-            <routeProbReroute id="045" probability="50.00"/>
+            <routeProbReroute id="044" probability="20.00"/>
+            <routeProbReroute id="045" probability="80.00"/>
         </interval>
     </rerouter>
 		<rerouter id="rerouter_14" edges="e_to_s2" probability="100.00">
         <interval begin="0.00" end="1000000.00">
-            <routeProbReroute id="046" probability="50.00"/>
-            <routeProbReroute id="047" probability="50.00"/>
+            <routeProbReroute id="046" probability="20.00"/>
+            <routeProbReroute id="047" probability="80.00"/>
         </interval>
     </rerouter>
 		<rerouter id="rerouter_15" edges="s1_to_w" probability="100.00">
         <interval begin="0.00" end="1000000.00">
-            <routeProbReroute id="048" probability="50.00"/>
-            <routeProbReroute id="049" probability="50.00"/>
+            <routeProbReroute id="048" probability="20.00"/>
+            <routeProbReroute id="049" probability="80.00"/>
         </interval>
     </rerouter>
 		<rerouter id="rerouter_16" edges="w_to_s1" probability="100.00">
         <interval begin="0.00" end="1000000.00">
-            <routeProbReroute id="050" probability="50.00"/>
-            <routeProbReroute id="051" probability="50.00"/>
+            <routeProbReroute id="050" probability="20.00"/>
+            <routeProbReroute id="051" probability="80.00"/>
         </interval>
     </rerouter>
 		<rerouter id="rerouter_17" edges="s1_to_s2" probability="100.00">
         <interval begin="0.00" end="1000000.00">
-            <routeProbReroute id="052" probability="50.00"/>
-            <routeProbReroute id="053" probability="50.00"/>
+            <routeProbReroute id="052" probability="20.00"/>
+            <routeProbReroute id="053" probability="80.00"/>
         </interval>
     </rerouter>
 		<rerouter id="rerouter_18" edges="n2_to_e" probability="100.00">
         <interval begin="0.00" end="1000000.00">
-            <routeProbReroute id="054" probability="50.00"/>
-            <routeProbReroute id="055" probability="50.00"/>
+            <routeProbReroute id="054" probability="20.00"/>
+            <routeProbReroute id="055" probability="80.00"/>
         </interval>
     </rerouter>
     <rerouter id="rerouter_19" edges="e_to_n2" probability="100.00">
         <interval begin="0.00" end="1000000.00">
-            <routeProbReroute id="056" probability="50.00"/>
-            <routeProbReroute id="057" probability="50.00"/>
+            <routeProbReroute id="056" probability="20.00"/>
+            <routeProbReroute id="057" probability="80.00"/>
         </interval>
     </rerouter>
 		<rerouter id="rerouter_20" edges="n2_to_n1" probability="100.00">
         <interval begin="0.00" end="1000000.00">
-            <routeProbReroute id="058" probability="50.00"/>
-            <routeProbReroute id="059" probability="50.00"/>
+            <routeProbReroute id="058" probability="80.00"/>
+            <routeProbReroute id="059" probability="20.00"/>
         </interval>
     </rerouter>
 		<rerouter id="rerouter_21" edges="n1_to_w" probability="100.00">
         <interval begin="0.00" end="1000000.00">
-            <routeProbReroute id="060" probability="50.00"/>
-            <routeProbReroute id="061" probability="50.00"/>
+            <routeProbReroute id="060" probability="20.00"/>
+            <routeProbReroute id="061" probability="80.00"/>
         </interval>
     </rerouter>
 		<rerouter id="rerouter_22" edges="s2_to_e" probability="100.00">
         <interval begin="0.00" end="1000000.00">
-            <routeProbReroute id="062" probability="50.00"/>
-            <routeProbReroute id="063" probability="50.00"/>
+            <routeProbReroute id="062" probability="20.00"/>
+            <routeProbReroute id="063" probability="80.00"/>
         </interval>
     </rerouter>
 		<rerouter id="rerouter_23" edges="s2_to_s1" probability="100.00">
         <interval begin="0.00" end="1000000.00">
-            <routeProbReroute id="064" probability="50.00"/>
-            <routeProbReroute id="065" probability="50.00"/>
+            <routeProbReroute id="064" probability="20.00"/>
+            <routeProbReroute id="065" probability="80.00"/>
         </interval>
     </rerouter>
 </additionals>

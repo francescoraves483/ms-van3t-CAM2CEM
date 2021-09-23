@@ -31,6 +31,7 @@ public:
   void receiveCEM (CEM_t *cem, Address from);
 
   void setCSVOfstream(std::ofstream *ofptr) {m_csv_stream_ptr = ofptr;}
+  void setRawTraceClient(std::shared_ptr<GPSRawTraceClient> &gps_raw_tc_client) {m_gps_raw_tc_client=gps_raw_tc_client;}
 
   void StopApplicationNow ();
   void stopDissemination();
@@ -45,13 +46,15 @@ private:
   Ptr<btp> m_btp; //! BTP object
   Ptr<GeoNet> m_geoNet; //! GeoNetworking Object
 
+  std::string m_model; //!< Communication Model (possible values: 80211p and cv2x)
+
   Ptr<Socket> m_socket;
 
   virtual void StartApplication (void);
   virtual void StopApplication (void);
 
   Ptr<TraciClient> m_traci_client; //!< TraCI SUMO client
-  Ptr<GPSRawTraceClient> m_gps_raw_tc_client; //!< Raw GNSS Data Trace client
+  std::shared_ptr<GPSRawTraceClient> m_gps_raw_tc_client; //!< Raw GNSS Data Trace client
 
   std::string m_id; //!< vehicle id
   bool m_real_time; //!< To decide wheter to use realtime scheduler
@@ -78,6 +81,10 @@ private:
 
   // CSV file ofstream (the file should have been already opened before!)
   std::ofstream *m_csv_stream_ptr;
+
+  Ipv4Address m_ipAddress; //!< C-V2X self IP address (set by 'v2v-cv2x.cc')
+  bool m_send_cem;
+
 };
 
 } // namespace ns3

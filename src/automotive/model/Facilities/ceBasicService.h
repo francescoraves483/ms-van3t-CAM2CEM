@@ -37,7 +37,7 @@ namespace ns3
     void setSocketTx(Ptr<Socket> socket_tx) {m_btp->setSocketTx (socket_tx);}
     void setSocketRx(Ptr<Socket> socket_rx);
     // void setVDP(VDP* vdp) {m_vdp=vdp;}
-    void setGPSRawTraceClient(Ptr<GPSRawTraceClient> gps_raw_trace_client);
+    void setGPSRawTraceClient(std::shared_ptr<GPSRawTraceClient> gps_raw_trace_client);
     void setBTP(Ptr<btp> btp){m_btp=btp;}
 
     void receiveCem(BTPDataIndication_t dataIndication, Address from, uint32_t originalPacketSize);
@@ -82,7 +82,7 @@ namespace ns3
     // GDP* m_gdp; // GNSS Data Provider (CEM)
     bool m_dissemination_started;
 
-    Ptr<GPSRawTraceClient> m_gps_raw_trace_client;
+    std::shared_ptr<GPSRawTraceClient> m_gps_raw_trace_client;
 
     Ptr<Socket> m_socket_tx; // Socket TX
 

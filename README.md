@@ -1,289 +1,61 @@
-# ms-van3t CAM2CEM Private Repository
+# ms-van3t CAM2CEM version
 
 ![](img/cam2cemlogo_private.png)
 
-ns-3 modules to build and simulate ETSI-compliant VANET (V2X) applications using SUMO (v-1.6.0+) and ns-3 (v-3.33), with the possibility of easily switching stack and communication technology.
-
-It has been tested with SUMO v1.6.0, v1.7.0, v1.8.0 and ns-3 v3.33 on Ubuntu 18.04 and 20.04.
-Back compatibility **is not** ensured with new versions of TraCI.
-
-To build the project:
-* Install SUMO following the guide at [https://sumo.dlr.de/wiki/Downloads](https://sumo.dlr.de/wiki/Downloads)
-    * You can use 
-    
-    	`sudo add-apt-repository ppa:sumo/stable`  
-    	`sudo apt update`  
-    	`sudo apt install sumo sumo-tools sumo-doc`  
-    * Be careful: in the future the previous commands will install updated version of SUMO which are not ensured to work with this scripts (that are tested with any version from **v-1.6.0** to **v-1.8.0** )
-    * Test sumo by opening a terminal and running "sumo-gui".
-	
-    * **Possible problems**:
-			
-			You may get the following error when running SUMO:
-			
-        	"sumo-gui: symbol lookup error: /usr/lib/libgdal.so.26: undefined symbol: GEOSMakeValid_r"
-    
-        	To solve it, remove all the reference to GEOS inside /usr/local/lib/ (do NOT do it if you need the GEOS library):
-    
-        	"sudo rm /usr/local/lib/libgeos*"
-
-* Clone this repository in your pc:
-
-`git clone https://github.com/marcomali/ms-van3t`
+This repository is a branch of the [ms-van3t](https://github.com/marcomali/ms-van3t) V2X simulation and emulation framework, with additional modules for testing a novel approach to the transmission of raw GNSS data between vehicles.
 
-* Run, from this repository either:
+In particular, this repository contains the first implementation of a proposed Cooperative Enhancement Basic Service (CE Basic Service), together with the definition of a new, ETSI-compatible, ASN1 V2X message, called CEM (Cooperative Enhancement Message - proposed messageID: *200*).
 
-`./sandbox_builder.sh install-dependencies` -> if this is the first time you install ns-3 or ms-van3t on your system
+The CEM .asn1 file (v1.2.2), which is released under the same license as this repository, and which is thus thought to be open, can be found inside `ns-3.33/src/automotive/asn1_files`.
 
-or
+**Remember that this repository is work-in-progress and specifically thought for the development, testing and validation of the new proposed CEM messages. If you need a stable environment for testing V2X applications, use the main ms-van3t repository instead!**
 
-`./sandbox_builder.sh` -> if this is **not** the first time you install ns-3 
+You can currently use this repository for testing the current version of the CE Basic Service and of the CEM protocol by relying on two different V2V access technologies, i.e., IEEE 802.11p and C-V2X Mode 4.
 
-This script will download ns-3.33 and install this framework. The folder `ns-3.33` will remain linked to this GitHub repository (not to the vanilla ns-3.33 one), allowing you to more easily develop updates and possibile contributions to *ms-van3t*.
-    
-* Configure `waf` to build the framework with `<ns3-folder>./waf configure --build-profile=optimized --enable-examples --enable-tests (add here what you want to enable)"` - The usage of the optimized profile allows to speed up the simulation time
+The current repository allows the user to set up any scenario on SUMO, and have the vehicles exchange sample CEM messages. These sample messages contain sample data, i.e., exactly the same data values and types of real CEM messages, but with no direct relationiship to the position of the vehicle inside the SUMO scenario. This repository can thus be used only to evaluate **network-related metrics** when transmitting CEM messages (network usage, PDR, latency, throughput, and so on), and **not yet** real cooperative positioning applications, which would require each SUMO vehicle to be equipped with a real raw GNSS trace consistent with the position of each vehicle inside the simulated scenario. In this repository, each vehicle is equipped with the same raw GNSS sample trace.
 
-* Build ns3:
-`./waf build`
+A public version leveraging a real dataset of 19 vehicles and real, consistent, raw GNSS traces (one for each vehicle) for the evaluation of actual cooperative positioning applications (and related application-related KPIs) is currently under development.
 
-**Important**
+**Important:** before launching and/or customizing any of the CEM sample applications, it is highly recommended to get familiar with ms-van3t and read the main ms-van3t README, available [here](https://github.com/marcomali/ms-van3t).
 
-The final project path-tree should look like (referring to the `src` directory):
+**Note:** the SUMO files defining the scenario for the two CEM sample applications can be found inside `ns-3.33/src/automotive/examples/sumo_files_v2i_map`. The `traces-additionals` folder contains some additional traces, with different numbers of vehicles, to be used in conjuction with the already available `map.net.xml` (if you want to use one of them, you should move it inside `ns-3.33/src/automotive/examples/sumo_files_v2i_map` and rename it to `cars.rou.xml`).
 
-    automotive/
-          doc/
-          examples/
-            sumo_files_v2v_map/
-            sumo_files_v2i_map/
-          helper/
-          model/
-            Applications/
-            asn1-legacy/
-            asn1-modern/
-            BTP/
-            Facilities/
-            GeoNet/
-            utilities/
-          test/
-    cv2x/
-          bindings/
-          doc/
-          examples/
-          helper/
-          model/
-          patching_scripts/
-          test/
-	gps-tc/
-		  doc/
-		  examples/
-		  helper/
-		  model/
-		  test/
-    traci/
-          doc/
-          examples/
-          model/
-    traci-applications/
-          examples/
-          helper/
-          model/
+## IEEE 802.11p
 
-`automotive/` contains all the application related files and all the source code implementing the ETSI ITS-G5 stack for vehicular communications. Inside `sumo_files_v2v_map` you can find the SUMO map and trace for the V2V sample application, while inside `sumo_files_v2i_map` you can find the SUMO map and trace for the V2I sample application. `traci/` and `traci-applications/` contain instead all the logic to link ns-3 and SUMO. `cv2x/` contains the model for C-V2X in transmission mode 4.
+The IEEE 802.11p access technology sample application relies on V2V a scenario with eight regulated intersections. All the vehicles are configured to send both CAMs and CEMs.
 
-The user is also encouraged to use the `sumo_files_v2v_map` and `sumo_files_v2i_map` folders to save there the SUMO-related files for his/her own applications.
+The simulation can be started with:
 
-**The version of CAM and DENM messages (v1 or v2)** can be easily switched by relying on the `switch_CAM_DENM_version.sh` script. This script relies on the `ns-3.33/src/automotive/currmode.txt` file. Please **never** modify it manually or delete it!
+`./waf --run "v2v-80211p-gps-raw-tc-example --sumo-gui=true"`
 
+You can customize when the vehicles will start transmittings CAMs and CEMs with `--dissemination-delay`. The CAMs and CEMs will be then transmitted for 100 s after the specified delay or after the beginning of the simulation, if no delay is specified. This is due to the length of the raw GNSS trace which is currently available. You can also set the maximum simulation time with `--sim-time` (normally, this time should be at least equal to the dissemination delay plus 100 seconds, in order to complete a full simulation).
 
-# Sample V2I example and V2I/V2N applications
+After the simulation, you will find, inside the main ns-3.33 folder:
+- a new CSV file, named `gps-raw-tc-log<n>.csv`, where `<n>` is the number of vehicles in the current SUMO trace (the default trace has 10 vehicles).
+- several  `.pcapng ` files, inside which you will find several Wireshark captures containing the messages exchanged by the vehicles. The CEM messages will be labeled as  `BTPB `, as there is currently no Wireshark dissector for this proposed message type.
 
-*ms-van3t* currently supports two stacks/communication technologies for V2I/V2N:
-- 802.11p, communicating, for instance, with a Road Side Unit (sample program name: `v2i-areaSpeedAdvisor-80211p`)
-- LTE, for V2N communications (sample program name: `v2i-areaSpeedAdvisor-lte`)
+In this sample application, the transmission power has been set to a value such that all the vehicles can communicate with all the others, to enable a reliable computation of the Packet Delivery Ratio. A new version, enabling the evaluation of the PDR according to the 3GPP TR36.885 V14.0.0 standard for any value of *txpower*, is currently under development and it should be available soon (this metric is already available in the main ms-van3t version).
 
-To run the sample V2I program you can use:
-`./waf --run "v2i-areaSpeedAdvisor-lte"` or
-`./waf --run "v2i-areaSpeedAdvisor-80211p"`
+## C-V2X
 
-*  Nodes are created in the ns3 simulation as vehicles enter the SUMO simulation
-*  A full LTE or 802.11p stack is implemented at lower layers (depending on which example is run)
+The 3GPP C-V2X Mode 4 access technology sample application relies on V2V a scenario with eight regulated intersections. All the vehicles are configured to send both CAMs and CEMs.
 
-In this example, every vehicle that enters the scenario will start sending CAMs with a frequency between *1 Hz* and *10 Hz* (according to the ETSI standards). 
+The simulation can be started with:
 
-Then, the logic of the two sample applications for V2I/V2N is similar, but it differs slightly depending on whether 802.11p is used (V2I) or LTE is used (V2N).  
+`./waf --run "v2v-cv2x-gps-raw-tc-example --sumo-gui=true"`
 
-At a glance, in 802.11p vehicles broadcast periodic CAM messages and an RSU periodically broadcasts DENM messages to inform vehicles travelling in a low speed area to slow down. In this case CAMs and DENMs messages are encapsulated inside BTP and GeoNetworking.
-In LTE, instead, the CAM messages are forwarded to a remote host (behind an eNB + EPC), which analyzes the position of the vehicles and sends unicast DENMs to vehicles entering a low speed area to change their maximum allowed speed. In this case, due to the absence of a MBMS module in the LTE framework of ns-3, all the messages are sent in unicast. 
-CAM and DENM messages are encapsulated inside BTP, GeoNetworking, UDP and IP.
+You can customize when the vehicles will start transmittings CAMs and CEMs with `--dissemination-delay`. The CAMs and CEMs will be then transmitted for 100 s after the specified delay or after the beginning of the simulation, if no delay is specified. This is due to the length of the raw GNSS trace which is currently available. You can also set the maximum simulation time with `--sim-time` (normally, this time should be at least equal to the dissemination delay plus 100 seconds, in order to complete a full simulation).
 
-__802.11p application logic__
+You can also disable the CEM transmission (leaving only the CAM messages) with `--send-cem=false`
 
-The map is divided into two areas: a circular area in the middle of the map, with a radius of 90 m, on which DENMs are broadcasted by the RSU (with their GeoArea set accordingly), where the maximum speed is 25km/h and an outer area, where the speed limit is set to 75km/h.
+After the simulation, you will find, inside the main ns-3.33 folder:
+- a new CSV file, named `gps-raw-tc-log<n>.csv`, where `<n>` is the number of vehicles in the current SUMO trace (the default trace has 10 vehicles). This file contains some useful network-related metrics, for each vehicle in the scenario.
 
-The RSU disseminates a DENM every second in the area mentioned before, and continues its transmissions until it receives CAMs from vehicles in the map. When no CAMs are received for more than 5 seconds, the DENM dissemination in paused, until new vehicles enter the scenario and new CAMs are received by the RSU.
+In this sample application, the transmission power has been set to a value such that all the vehicles can communicate with all the others, to enable a reliable computation of the Packet Delivery Ratio. A new version, enabling the evaluation of the PDR according to the 3GPP TR36.885 V14.0.0 standard for any value of *txpower*, is currently under development and it should be available soon (this metric is already available in the main ms-van3t version).
 
-![](img/v2i-80211p.png)
-
-__LTE application logic__
-
-The map is divided into two areas: the area in the middle, where the maximum speed is 25km/h and an outer area, where the speed limit is set to 75km/h. In this case, DENMs cannot be transmitted using merely BTP and GeoNetworking, but they have to rely on UDP and IPv4, since the server is located in a remote host behind the eNB and EPC. The server checks whenever a transition between the two areas is performed by a vehicle, and, when it happens, it sends it a _unicast_ DENM message to tell it to slow-down (or to let it speed-up again).
-
-![](img/v2i-lte.png)
-
-__Mobility Traces and Facilities Layer__
-
-The mobility trace is contained in the file `ns-3.33/src/automotive/example/sumo_files_v2i_map/cars.rou.xml`.
-This SUMO map embeds some re-routers allowing the vehicles to continuously move in the map.
-
-The CAMs and DENMs dissemination logics are in the modules inside the `automotive/Facilities` folder while the application logic resides on (areaSpeedAdvisorClient80211p.cc/.h, areaSpeedAdvisorClientLTE.cc/.h) and (areaSpeedAdvisorServer80211p.cc/.h, areaSpeedAdvisorServerLTE.cc/.h) inside `automotive/Applications`.
-
-The user *IS NOT* expected to modify the code inside the "Facilities", "BTP" and "GeoNet" folders, but rather to use the ETSI Facilities Layer methods inside the application.
-
-**Important**
-
-If using the LTE version in this very simple toy case, it is possible to connect at most 23 UEs to the enB (due to the LENA framework currently implemented features). You can avoid this problem by using the option `--ns3::LteEnbRrc::SrsPeriodicity=[value]"` where [value]=0, 2, 5, 10, 20, 40, 80, 160, 320. In this way you can add more UEs. Example: `./waf --run "v2i-areaSpeedAdvisory-lte --ns3::LteEnbRrc::SrsPeriodicity=160"`
-
-**List of the most important options:**
-* `--realtime                  [bool] decide to run the simulation using the realtime scheduler or not`
-* `--sim-time                  [double] simulation time`
-* `--sumo-gui                  [bool] decide to show sumo-gui or not`
-* `--server-aggregate-output   [bool] if true, the server will print every second a report on the number of DENM sent and CAM received correctly`
-* `--sumo-updates              [double] frequency of SUMO updates`
-* `--csv-log                   [string] prefix of the CSV log files where to save the disaggregated data coming from the CAMs received by the server and the DENMs received by the vehicles (the user can then use this sample application to build more complex logging mechanisms and/or log additional data coming from the server and/or the vehicles)`
-
-
-
-# Sample V2V example and V2V applications
-
-*ms-van3t* currently supports two stacks/communication technologies for V2V:
-- 802.11p (sample program name: `v2v-80211p`)
-- C-V2X Mode 4 (sample program name: `v2v-cv2x`)
-
-To run the program:
-
-`./waf --run "v2v-emergencyVehicleAlert-cv2x"` or
-`./waf --run "v2v-emergencyVehicleAlert-80211p"`
-
-*  Nodes are created in the ns3 simulation as vehicle enters the SUMO simulation
-*  A full C-V2X or 802.11p stack is implemented at lower layers
-
-In this example, every vehicle that enters the scenario will start sending CAMs with a frequency between *1 Hz* and *10 Hz* (according to the ETSI standards). The vehicles are divided into "passenger" vehicles (i.e., normal vehicles) and "emergency" vehicles. 
-
-A CAM generated by an emergency vehicle will have the "StationType" Data Element (i.e. a field of the message) set to "specialVehicles".
-When normal vehicles receive these CAM messages from an emergency vehicle, they will check whether their heading is similar to the one of the emergency vehicle and which is their distance to the latter.
-
-If the heading is similar and the distance is small enough, it means that the emergency vehicle is approaching. In this case, the receiving vehicles will either slow down (if on a different lane than the one the emergency vehicle is travelling on) or change lane as soon as possible (speeding up for a little while, if necessary, when they are on the same lane as the emergency vehicle).
-
-When acting, in the SUMO GUI, vehicles will either turn orange (different lane --> slow down) or green (same lane --> clear path as soon as possible).
-
-The CAMs and DENMs dissemination logic are in the modules inside the `automotive/Facilities` folder while the application logic is inside emergencyVehicleAlert.cc/.h (in `automotive/Applications`).
-The user *IS NOT* expected to modify the code inside the "Facilities", "BTP" or "GeoNet" folders, but rather to use the ETSI Facilities Layer methods inside the application.
-
-The SUMO scenario comprehends a ring-like topology, with two directions and two lanes for each direction (with a total of 4 lanes). 
-
-![](img/v2v-road-topology.png)
-
-The mobility trace is contained inside the file `automotive/example/sumo_files_v2v_map/cars.rou.xml`.
-
-The SUMO map also embeds some re-routers allowing the vehicles to continuously travel on the available road segments.
-
-![](img/v2v-logic.png)
-
-**List of the most important options:**
-* `--realtime                   [bool] decide to run the simulation using the realtime scheduler or not`
-* `--sim-time                   [double] simulation time`
-* `--sumo-gui                   [bool] decide to show sumo-gui or not`
-* `--sumo-updates               [double] frequency of SUMO updates`
-* `--csv-log:                   [string] prefix of the CSV log files where to save CAMs and DENMs disaggregated data and statistics`
-
-
-# Sample V2X emulator application
-
-*ms-van3t* also includes an example of an emulation application, which is able to send the CAMs and DENMs generated by the vehicles, (virtually) travelling on the SUMO map, over a real network, by relying on a physical interface.
-
-The same application should also be able to receive CAMs and DENMs coming from the external world (i.e. from a certain physical interface of the device running ns-3).
-
-For the time being, this sample application is relying on the same map and mobility traces of the V2V application and it sends both CAM messages and periodic DENM messages, as an example on how both kinds of messages can be emulated and sent to the external world.
-
-In order to properly work, the emulator application should always run in real time, and the device on which ns-3 is run should be able to handle the specified number of vehicles without delays and without slowing down. 
-
-As it is communicating with the external world, it handles only ASN.1 standard-compliant messages.
-
-More in details, this application emulates N vehicles, each with its own CA and DEN basic service, and make them send the CAM/DENM messages and receive the CAM/DENM messages through a physical interface (specified with the "interface" option), instead of using any ns-3 simulated model.
-This should enable, in the future, hardware-in-the-loop testing and evaluation.
-
-You can run it with:
-`./waf --run "v2x-emulator --interface=<interface name>"`
-
-Where `<interface name>` is the name of the physical interface, on your PC, where CAMs will be sent.
-
-**Please note that the interface, in order to work with ns-3, should be put in promiscuous mode.**
-
-You can put an interface in promiscuous mode with:
-`sudo ip link set <interface name> promisc on`
-
-The promiscuous mode can then be disabled with:
-`sudo ip link set <interface name> promisc off`
-
-`sudo` may be needed to use the underlying ns-3 *FdNetDevice*: if you get a "permission denied" error, try to run again the `emu-v2x` application with `sudo`.
-
-The logic of the application is contained inside model/Applications/v2x-helper.c/.h
-
-**UDP mode** 
-
-In the default emulation mode, messages will be sent, through the specified interface, as broadcast packets encapsulated inside BTP and GeoNetworking.
-
-The user can also specify, however, a _UDP mode_, enabling the transmission of messages to an external UDP server. In this case, the ETSI V2X messages (i.e. CAM, DENM) will be encapsulated inside BTP --> GeoNetworking --> UDP --> IPv4, and sent to a host with a specified IPv4 and port.
-
-*Any host is fine, but the following limitations apply:*
-
-- The remote UDP server must be able to reply to the ARP requests sent by the vehicles, which will use their own source IP address and MAC and **not** the ones of the physical interface
-- No loopback operations are possible so far, due to the limitation mentioned before
-- The network at which the physical interface is connected shall be able to support the communication using spoofed MAC and IP addresses (otherwise, the ARP requests sent by ns-3 may not receive any reply). In general, we verified that any Ethernet link between ns-3 and the remote host receiving the UDP packets should be fine.
-
-**Screenshots**
-
-The following screenshot shows a Wireshark capture of the messages sent by the emulator application, when operating in normal mode and selecting the `ens33` interface (e.g. `./waf --run "v2x-emulator --interface=ens33"`)
-
-![](img/v2x-emulator-normal-mode.png)
-
-
-The following screenshot shows a Wireshark capture of the messages sent by the emulator application, when operating in UDP mode, targeting a UDP server at 192.168.1.124/24, port 20000, and transmitting over the `ens33` interface (e.g. `./waf --run "v2x-emulator --udp=192.168.1.124:20000 --interface=ens33 netmask=255.255.255.0 gateway=192.168.1.1"`)
-
-![](img/v2x-emulator-udp-mode.png)
-
-
-**List of the most important options:**
-* `--sim-time                   [double] total emulation/simulation time`
-* `--sumo-gui                   [bool] decide to show sumo-gui or not`
-* `--sumo-updates               [double] frequency of SUMO updates`
-* `--send-cam                   [bool] enable vehicles to send CAMs`
-* `--send-denm                  [bool] enable vehicles to send DENMs`
-* `--interface                  [string] Name of the physical interface to send(/receive) V2X messages to(/from)`
-* `--udp                		   [string] To enable UDP mode and specify UDP port and IP address where the V2X messages are redirected (format: <IP>:<port>)`
-* `--gateway                    [string] To specify the gateway at which the UDP/IP packets will be sent`
-* `--subnet                     [string] To specify the subnet which will  be used to assign the IP addresses of emulated nodes (the .1 address is automatically excluded)`
-*  `--netmask                     [string] To specify the netmask of the network`
 
 ## Acknowledgements
 
-To acknowledge us in your publication(s) please refer to the following publication:
+*To be completed as soon as our paper is published.* 
 
-```tex
-@inproceedings{10.1145/3416014.3424603,
-	author = {Malinverno, Marco and Raviglione, Francesco and Casetti, Claudio and Chiasserini, Carla-Fabiana and Mangues-Bafalluy, Josep and Requena-Esteso, Manuel},
-	title = {A Multi-Stack Simulation Framework for Vehicular Applications Testing},
-	year = {2020},
-	isbn = {9781450381215},
-	publisher = {Association for Computing Machinery},
-	address = {New York, NY, USA},
-	url = {https://doi.org/10.1145/3416014.3424603},
-	doi = {10.1145/3416014.3424603},
-	booktitle = {Proceedings of the 10th ACM Symposium on Design and Analysis of Intelligent Vehicular Networks and Applications},
-	pages = {17–24},
-	numpages = {8},
-	keywords = {vehicular networks, sumo, V2X, NS-3, 802.11p, ETSI facilities layer, C-V2X},
-	location = {Alicante, Spain},
-	series = {DIVANet '20}
-}
-```
+Currently, we have one accepted conference paper which is going to be published soon. As soon as it is officially published, we will update this section of the README accordingly.

@@ -98,7 +98,7 @@ namespace ns3
   }
 
   void
-  CEBasicService::setGPSRawTraceClient(Ptr<GPSRawTraceClient> gps_raw_trace_client) {
+  CEBasicService::setGPSRawTraceClient(std::shared_ptr<GPSRawTraceClient> gps_raw_trace_client) {
     m_gps_raw_trace_client=gps_raw_trace_client;
     m_gps_raw_trace_client->setFrameCallback (std::bind(&CEBasicService::frameCallback,this,std::placeholders::_1));
   }
@@ -247,7 +247,6 @@ namespace ns3
 
             // Optional Container
             ssi->optionalContainer = (OptionalContainer_t *)calloc(1,sizeof(OptionalContainer_t));
-            m_ptr_queue.push((void *) ssi->optionalContainer);
 
             ssi->optionalContainer->doppler = (Doppler_t) x.second.doppler;
 
@@ -273,6 +272,8 @@ namespace ns3
                 ssi->optionalContainer->signalStrength = SignalStrength_unavailable;
             }
 
+            m_ptr_queue.push((void *) ssi->optionalContainer);
+
             // Uncertainty Container
             // This container is inserted only if at least one uncertainty value is available
             if(x.second.doppler_uncertainty != GPSDataUncertainty_unavailable ||
@@ -288,6 +289,8 @@ namespace ns3
             }
 
             ASN_SEQUENCE_ADD(&cem->cem.choice.fps.satelliteSignalInfo, ssi);
+
+            m_ptr_queue.push ((void *) ssi);
         }
     }
     else if(rawdata.type == GPSRawTraceClient::DIFFERENTIAL_D_FRAME)
@@ -307,7 +310,7 @@ namespace ns3
         memset(&cemTstamp_I, 0, sizeof(INTEGER_t));
         asn_imax2INTEGER(&cemTstamp_I, (long long unsigned int) rawdata.cemTstamp*cemTimestampMultiplier);
         cem->cem.choice.dmf.cemTstamp = cemTstamp_I;
-        m_ptr_queue.push ((void *) cem->cem.choice.fps.cemTstamp.buf);
+        m_ptr_queue.push ((void *) cem->cem.choice.dmf.cemTstamp.buf);
 
         for (auto const& x : rawdata.dframe_data)
         {
@@ -326,10 +329,13 @@ namespace ns3
 
             // Differential Optional Container
             dssi->differentialOptionalContainer = (DifferentialOptionalContainer_t *)calloc(1,sizeof(DifferentialOptionalContainer_t));
+            m_ptr_queue.push ((void *) dssi->differentialOptionalContainer);
             dssi->differentialOptionalContainer->differentialDoppler = (DifferentialDoppler_t) x.second.differential_doppler;
             dssi->differentialOptionalContainer->differentialCarrierPhase = (DifferentialCarrierPhase_t) x.second.differential_carrierphase;
 
             ASN_SEQUENCE_ADD(&cem->cem.choice.dmf.differentialSatelliteSignalInfo, dssi);
+
+            m_ptr_queue.push ((void *) dssi);
         }
     }
 
@@ -409,20 +415,26 @@ namespace ns3
   void
   CEBasicService::freeCEM(CEM_t *cem)
   {
-//    while(!m_ptr_queue.empty ())
-//      {
-//        free(m_ptr_queue.front ());
-//        m_ptr_queue.pop();
-//      };
-
     if(cem->cem.present == CoopEnhancement_PR_fps)
     {
-        ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_SatelliteSignalInfo, &cem->cem.choice.fps.satelliteSignalInfo);
+//        for(int i=0;i<cem->cem.choice.fps.satelliteSignalInfo.list.size;i++) {
+//            free(cem->cem.choice.fps.satelliteSignalInfo.list.array[i]);
+//        }
+        ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_FullPrecisionInterframe, &cem->cem.choice.fps);
     }
     else if(cem->cem.present == CoopEnhancement_PR_dmf)
     {
-        ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_SatelliteSignalInfo, &cem->cem.choice.dmf.differentialSatelliteSignalInfo);
+//        for(int i=0;i<cem->cem.choice.dmf.differentialSatelliteSignalInfo.list.size;i++) {
+//            free(cem->cem.choice.dmf.differentialSatelliteSignalInfo.list.array[i]);
+//        }
+        ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_DifferentialMicroframe, &cem->cem.choice.dmf);
     }
+
+    while(!m_ptr_queue.empty ())
+      {
+        //free(m_ptr_queue.front ());
+        m_ptr_queue.pop();
+      };
 
     // Main structure
     if(cem) free(cem);
