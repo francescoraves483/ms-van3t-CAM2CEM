@@ -34,14 +34,17 @@ namespace ns3
     void setStationType(long fixed_stationtype);
     void setSocketTx(Ptr<Socket> socket_tx) {m_btp->setSocketTx (socket_tx);}
     void setSocketRx(Ptr<Socket> socket_rx);
+    void setSocketRxPkt(Ptr<Socket> socket_rx);
     void setRSU() {m_vehicle=false;}
     void setVDP(VDP* vdp) {m_vdp=vdp;}
     void setBTP(Ptr<btp> btp){m_btp = btp;}
 
     void receiveCam(BTPDataIndication_t dataIndication, Address from, uint32_t originalPacketSize);
+    void receiveCamPkt(BTPDataIndication_t dataIndication, Address from, Ptr<Packet> pkt);
     void changeNGenCamMax(int16_t N_GenCamMax) {m_N_GenCamMax=N_GenCamMax;}
     void changeRSUGenInterval(long RSU_GenCam_ms) {m_RSU_GenCam_ms=RSU_GenCam_ms;}
     void addCARxCallback(std::function<void(CAM_t *, Address)> rx_callback) {m_CAReceiveCallback=rx_callback;}
+    void addCARxCallbackPkt(std::function<void(CAM_t *, Address, Ptr<Packet>)> rx_callback_pkt) {m_CAReceiveCallbackPkt=rx_callback_pkt;}
     void setRealTime(bool real_time){m_real_time=real_time;}
 
     uint64_t getBytesRx(){return m_bytes_received;}
@@ -63,6 +66,7 @@ namespace ns3
     int64_t computeTimestampUInt64();
 
     std::function<void(CAM_t *, Address)> m_CAReceiveCallback;
+    std::function<void(CAM_t *, Address, Ptr<Packet>)> m_CAReceiveCallbackPkt;
 
     Ptr<btp> m_btp;
 

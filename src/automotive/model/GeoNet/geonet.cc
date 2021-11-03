@@ -362,6 +362,18 @@ namespace ns3 {
       NS_LOG_ERROR("GeoNet: SOCKET NOT FOUND ");
       return UNSPECIFIED_ERROR;
     }
+
+    if(m_PRRSupervisor_ptr!=nullptr)
+    {
+      uint8_t *buffer = new uint8_t[dataRequest.data->GetSize ()];
+
+      dataRequest.data->CopyData (buffer,dataRequest.data->GetSize ());
+
+      m_PRRSupervisor_ptr->signalSentPacket (PRRSupervisor::bufToString (buffer,dataRequest.data->GetSize ()),m_egoPV.POS_EPV.lat,m_egoPV.POS_EPV.lon);
+
+      delete[] buffer;
+    }
+
     numbytes = m_socket_tx->Send (dataRequest.data);
     if(numbytes<=0)
       {
@@ -421,6 +433,16 @@ namespace ns3 {
       NS_LOG_ERROR("GeoNet: SOCKET NOT FOUND ");
       return UNSPECIFIED_ERROR;
     }
+    if(m_PRRSupervisor_ptr!=nullptr)
+    {
+      uint8_t *buffer = new uint8_t[dataRequest.data->GetSize ()];
+
+      dataRequest.data->CopyData (buffer,dataRequest.data->GetSize ());
+
+      m_PRRSupervisor_ptr->signalSentPacket (PRRSupervisor::bufToString (buffer,dataRequest.data->GetSize ()),m_egoPV.POS_EPV.lat,m_egoPV.POS_EPV.lon);
+
+      delete[] buffer;
+    }
     numbytes = m_socket_tx->Send (dataRequest.data);
     if(numbytes==-1)
     {
@@ -459,6 +481,17 @@ namespace ns3 {
       return UNSPECIFIED_ERROR;
     }
     //if(!m_GnIsMobile)return ACCEPTED;
+    if(m_PRRSupervisor_ptr!=nullptr)
+    {
+      uint8_t *buffer = new uint8_t[dataRequest.data->GetSize ()];
+
+      dataRequest.data->CopyData (buffer,dataRequest.data->GetSize ());
+
+      m_PRRSupervisor_ptr->signalSentPacket (PRRSupervisor::bufToString (buffer,dataRequest.data->GetSize ()),m_egoPV.POS_EPV.lat,m_egoPV.POS_EPV.lon);
+
+      delete[] buffer;
+    }
+
     if(m_socket_tx->Send (dataRequest.data)==-1)
     {
       NS_LOG_ERROR("Cannot send BEACON packet ");
@@ -603,6 +636,19 @@ namespace ns3 {
 
     dataIndication.data = socket->RecvFrom (from);
 
+    Ptr<Packet> initialPkt = dataIndication.data->Copy ();
+
+    if(m_PRRSupervisor_ptr!=nullptr)
+    {
+      uint8_t *buffer = new uint8_t[dataIndication.data->GetSize ()];
+
+      dataIndication.data->CopyData (buffer,dataIndication.data->GetSize ());
+
+      m_PRRSupervisor_ptr->signalReceivedPacket (PRRSupervisor::bufToString (buffer,dataIndication.data->GetSize ()),m_station_id);
+
+      delete[] buffer;
+    }
+
     packetSize = dataIndication.data->GetSize ();
 
     dataIndication.data->RemoveHeader (basicHeader, 4);
@@ -647,7 +693,14 @@ namespace ns3 {
           processGBC (dataIndication,from,commonHeader.GetHeaderSubType (),packetSize);
         break;
       case TSB:
-        if((commonHeader.GetHeaderSubType ()==0)) processSHB (dataIndication,from,packetSize);
+        if(m_PRRSupervisor_ptr!=nullptr)
+        {
+            if((commonHeader.GetHeaderSubType ()==0)) processSHB (dataIndication,from,packetSize);
+        }
+        else
+        {
+            if((commonHeader.GetHeaderSubType ()==0)) processSHB (dataIndication,from,initialPkt);
+        }
         break;
       default:
         NS_LOG_ERROR("GeoNet packet not supported");
@@ -803,6 +856,54 @@ namespace ns3 {
     if(dataIndication.GNType != BEACON)
     {
       m_ReceiveCallback(dataIndication,from,packetSize);
+    }
+  }
+
+  void
+  GeoNet::processSHB (GNDataIndication_t dataIndication, Address from, Ptr<Packet> pkt)
+  {
+    SHBheader shbHeader;
+    BeaconHeader beaconHeader;
+    if(dataIndication.GNType == BEACON)
+    {
+      dataIndication.data->RemoveHeader (beaconHeader, 24);
+      dataIndication.SourcePV = beaconHeader.GetLongPositionV ();
+    }
+    else
+    {
+      dataIndication.data->RemoveHeader (shbHeader, 28);
+      dataIndication.SourcePV = shbHeader.GetLongPositionV ();
+    }
+    // SHB Processing according to ETSI EN 302 636-4-1 [10.3.10.3] or Beacon processing according to [10.3.6.3]
+    //3)execute DAD
+    if(m_GnLocalAddrCongMethod == 0)
+    {
+      if(DAD(dataIndication.SourcePV.GnAddress))
+      {
+         NS_LOG_ERROR("Duplicate address detected");
+      }
+    }
+    //4)update PV in the SO LocTE with the SO PV fields of the SHB extended header
+    m_LocT_Mutex.lock ();
+    std::map<GNAddress, GNLocTE>::iterator entry_map_it = m_GNLocT.find(dataIndication.SourcePV.GnAddress);
+
+    //Not specified in the protocol but first check if LocTE exist in the LocTable
+    if (entry_map_it == m_GNLocT.end())
+    {
+      newLocTE (dataIndication.SourcePV);
+    }
+    else
+    {
+      //Update LongPV
+      LocTUpdate (dataIndication.SourcePV,entry_map_it);
+      //6)Set IS_NEIGHBOUR flag to true
+      entry_map_it->second.IS_NEIGHBOUR = true;
+    }
+    m_LocT_Mutex.unlock ();
+    //7) Pass the payload to the upper protocol entity if it's not a beacon packet
+    if(dataIndication.GNType != BEACON)
+    {
+      m_ReceiveCallbackPkt(dataIndication,from,pkt);
     }
   }
 

@@ -115,6 +115,14 @@ namespace ns3
     m_btp->setSocketRx(socket_rx);
     m_btp->addCAMRxCallback (std::bind(&CABasicService::receiveCam,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
   }
+  
+  void
+  CABasicService::setSocketRxPkt (Ptr<Socket> socket_rx)
+  {
+    /*m_btp->setSocketRxPkt(socket_rx);
+    m_btp->addCAMRxCallbackPkt (std::bind(&CABasicService::receiveCamPkt,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));*/
+    NS_FATAL_ERROR("Error: setSocketRxPkt() is disabled in ms-van3t-CAM2CEM. You should not use it, for the time being.");
+  }
 
   void
   CABasicService::startCamDissemination()
@@ -186,6 +194,47 @@ namespace ns3
 
     m_CAReceiveCallback(decoded_cam,from);
   }
+  
+  void
+  CABasicService::receiveCamPkt (BTPDataIndication_t dataIndication, Address from, Ptr<Packet> pkt)
+  {
+    Ptr<Packet> packet;
+    CAM_t *decoded_cam;
+
+    packet = dataIndication.data;
+    uint8_t *buffer; //= new uint8_t[packet->GetSize ()];
+    buffer=(uint8_t *)malloc((packet->GetSize ())*sizeof(uint8_t));
+    packet->CopyData (buffer, packet->GetSize ());
+
+    /* Try to check if the received packet is really a CAM */
+    if (buffer[1]!=FIX_CAMID)
+      {
+        NS_LOG_ERROR("Warning: received a message which has messageID '"<<buffer[1]<<"' but '2' was expected.");
+        free(buffer);
+        return;
+      }
+
+    /** Decoding **/
+    void *decoded_=NULL;
+    asn_dec_rval_t decode_result;
+
+    //do {
+      decode_result = asn_decode(0, ATS_UNALIGNED_BASIC_PER, &asn_DEF_CAM, &decoded_, buffer, packet->GetSize ());
+    //} while(decode_result.code==RC_WMORE);
+
+    free(buffer);
+
+    if(decode_result.code!=RC_OK || decoded_==NULL) {
+        NS_LOG_ERROR("Warning: unable to decode a received CAM.");
+        if(decoded_) free(decoded_);
+        return;
+      }
+
+    decoded_cam = (CAM_t *) decoded_;
+
+    m_CAReceiveCallbackPkt(decoded_cam,from,pkt);
+  }
+
 
   void
   CABasicService::initDissemination()

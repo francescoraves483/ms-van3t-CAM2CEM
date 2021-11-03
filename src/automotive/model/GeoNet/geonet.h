@@ -21,6 +21,7 @@
 #include "ns3/gn-address.h"
 #include "ns3/longpositionvector.h"
 #include "ns3/btpdatarequest.h"
+#include "ns3/PRRSupervisor.h"
 
 #define TS_MAX 4294967295 //(2^32)-1
 
@@ -68,9 +69,11 @@ namespace ns3
       void setVDP(VDP* vdp);
       void setSocketTx(Ptr<Socket> socket_tx);
       void addRxCallback(std::function<void(GNDataIndication_t,Address,uint32_t)> rx_callback) {m_ReceiveCallback=rx_callback;}
+      void addRxCallbackPkt(std::function<void(GNDataIndication_t,Address,Ptr<Packet>)> rx_callback_pkt) {m_ReceiveCallbackPkt=rx_callback_pkt;}
       GNDataConfirm_t sendGN(GNDataRequest_t dataRequest);
       GNDataConfirm_t sendGN(GNDataRequest_t dataRequest,int &numbytes);
       void receiveGN(Ptr<Socket> socket);
+      void setPRRSupervisor(Ptr<PRRSupervisor> PRRSupervisor_ptr) {m_PRRSupervisor_ptr=PRRSupervisor_ptr;}
       void cleanup();
 
 
@@ -79,6 +82,7 @@ namespace ns3
       void newLocTE(GNlpv_t longPositionVector);
       void LocTUpdate(GNlpv_t lpv,std::map<GNAddress,GNLocTE>::iterator locte_it);
       void processSHB(GNDataIndication_t dataIndication,Address address,uint32_t packetSize);
+      void processSHB(GNDataIndication_t dataIndication,Address address, Ptr<Packet> pkt);
       void processGBC(GNDataIndication_t dataIndication,Address address,uint8_t shape,uint32_t packetSize);
       uint8_t encodeLT(double seconds);
       double decodeLT(uint8_t lifeTime);
@@ -112,6 +116,7 @@ namespace ns3
       Ptr<Socket> m_socket_tx;
 
       std::function<void(GNDataIndication_t,Address,uint32_t)> m_ReceiveCallback;
+      std::function<void(GNDataIndication_t,Address,Ptr<Packet>)> m_ReceiveCallbackPkt;
 
       VDP* m_vdp;
       StationID_t m_station_id;
@@ -157,7 +162,8 @@ namespace ns3
       uint16_t m_FnCbfPacketBufferSize = 256;
       uint16_t m_GnDefaultTrafficClass = 0;
       bool m_RSU_epv_set = false;
-
+	
+      Ptr<PRRSupervisor> m_PRRSupervisor_ptr = nullptr;
   };
 }
 #endif // GEONET_H

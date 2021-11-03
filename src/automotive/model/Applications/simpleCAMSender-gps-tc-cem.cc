@@ -82,7 +82,12 @@ namespace ns3
             "Physical and MAC layer communication model",
             StringValue ("cv2x"),
             MakeStringAccessor (&simpleCAMSenderCEM::m_model),
-            MakeStringChecker ());
+            MakeStringChecker ())
+        .AddAttribute ("PRRSupervisor",
+            "PRR Supervisor to compute PRR according to 3GPP TR36.885 V14.0.0 page 70",
+            PointerValue (0),
+            MakePointerAccessor (&simpleCAMSenderCEM::m_PRR_supervisor),
+            MakePointerChecker<PRRSupervisor> ());
         return tid;
   }
 
@@ -143,6 +148,11 @@ namespace ns3
     // Create new BTP and GeoNet objects and set them in DENBasicService and CABasicService
     m_btp = CreateObject <btp>();
     m_geoNet = CreateObject <GeoNet>();
+    
+    if(m_PRR_supervisor!=nullptr)
+    {
+      m_geoNet->setPRRSupervisor(m_PRR_supervisor);
+    }
     m_btp->setGeoNet(m_geoNet);
     m_denService.setBTP(m_btp);
     m_caService.setBTP(m_btp);

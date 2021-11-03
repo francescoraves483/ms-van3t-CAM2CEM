@@ -55,6 +55,13 @@ namespace ns3
     socket_rx->SetRecvCallback (MakeCallback(&GeoNet::receiveGN, m_geonet));
     m_geonet->addRxCallback(std::bind(&btp::receiveBTP,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
   }
+  
+/*  void
+  btp::setSocketRxPkt (Ptr<Socket> socket_rx)
+  {
+    socket_rx->SetRecvCallback (MakeCallback(&GeoNet::receiveGN, m_geonet));
+    m_geonet->addRxCallbackPkt(std::bind(static_cast<void(btp::*)(GNDataIndication_t,Address,Ptr<Packet>)>(&btp::receiveBTP),this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3,std::placeholders::_4));
+  }*/
 
   int
   btp::sendBTP(BTPDataRequest_t dataRequest)
@@ -134,5 +141,37 @@ namespace ns3
       NS_LOG_ERROR("BTP : Unknown port");
   }
 
+/*  void
+  btp::receiveBTP(GNDataIndication_t dataIndication,Address address,Ptr<Packet> pkt)
+  {
+    btpHeader header;
+    BTPDataIndication_t btpDataIndication = {};
+    dataIndication.data->RemoveHeader (header, 4);
 
+    btpDataIndication.BTPType = dataIndication.upperProtocol;
+    btpDataIndication.destPort = header.GetDestinationPort ();
+    if(btpDataIndication.BTPType == BTP_A)
+    {
+      btpDataIndication.sourcePort = header.GetSourcePort ();
+      btpDataIndication.destPInfo = 0;
+    }
+    else //BTP-B
+    {
+      btpDataIndication.destPInfo = header.GetDestinationPortInfo ();
+      btpDataIndication.sourcePort = 0;
+    }
+    btpDataIndication.GnAddress = dataIndication.GnAddressDest;
+    btpDataIndication.GNTraClass = dataIndication.GNTraClass;
+    btpDataIndication.GNRemPLife = dataIndication.GNRemainingLife;
+    btpDataIndication.GNPositionV = dataIndication.SourcePV;
+    btpDataIndication.data = dataIndication.data;
+    btpDataIndication.lenght = dataIndication.data->GetSize ();
+
+    if(btpDataIndication.destPort == CA_PORT)
+      m_cam_ReceiveCallbackPkt(btpDataIndication,address,pkt);
+    else if(btpDataIndication.destPort == DEN_PORT)
+      m_denm_ReceiveCallback(btpDataIndication,address);
+    else
+      NS_LOG_ERROR("BTP : Unknown port");
+  }*/
 }

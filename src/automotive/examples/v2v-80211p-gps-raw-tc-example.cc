@@ -63,7 +63,7 @@ main (int argc, char *argv[])
 
   bool verbose = false;
   bool realtime = false;
-  int txPower=42;
+  int txPower=23;
   float datarate=12;
 
   bool sumo_gui = true;
@@ -76,6 +76,9 @@ main (int argc, char *argv[])
   uint32_t nodeCounter = 0;
 
   double dissemination_delay = 0.0;
+  
+  std::string csv_name_cumulative;
+  double m_baseline_prr = 150.0;
 
   CommandLine cmd;
 
@@ -100,6 +103,9 @@ main (int argc, char *argv[])
   cmd.AddValue ("datarate", "802.11p channel data rate [Mbit/s]", datarate);
 
   cmd.AddValue("sim-time", "Total duration of the simulation [s]", simTime);
+  
+  cmd.AddValue ("baseline", "Baseline for PRR calculation", m_baseline_prr);
+  cmd.AddValue ("csv-log-cumulative", "Name of the CSV log file for the cumulative (average) PRR and latency data", csv_name_cumulative);
 
   cmd.Parse (argc, argv);
 
@@ -252,6 +258,9 @@ main (int argc, char *argv[])
   csv_filestream.open(csv_filename.c_str ());
 
   csv_filestream << "vehicle_ID,CAM_rx,CAM_tx,CAM_bytes_tx,CAM_bytes_rx,CEM_rx,CEM_tx,CEM_bytes_tx,CEM_bytes_rx" << std::endl;
+  
+  PRRSupervisor prrSup(m_baseline_prr);
+  prrSup.setTraCIClient(sumoClient);
 
   int i=0;
   /* callback function for node creation */
@@ -273,6 +282,7 @@ main (int argc, char *argv[])
       }
       i++;
       SimpleCAMSenderCEMHelper.SetAttribute ("Model", StringValue("80211p"));
+      SimpleCAMSenderCEMHelper.SetAttribute ("PRRSupervisor", PointerValue (&prrSup));
       ApplicationContainer setupAppSimpleSender = SimpleCAMSenderCEMHelper.Install (includedNode);
 
       setupAppSimpleSender.Get (0)->GetObject<simpleCAMSenderCEM>()->setCSVOfstream(&csv_filestream);
@@ -357,6 +367,29 @@ main (int argc, char *argv[])
   Simulator::Destroy ();
 
   csv_filestream.close();
+  
+  if(csv_name_cumulative!="")
+  {
+      std::ofstream csv_cum_ofstream;
+      std::string full_csv_name = csv_name_cumulative + ".csv";
+
+      if(access(full_csv_name.c_str(),F_OK)!=-1)
+      {
+          // The file already exists
+          csv_cum_ofstream.open(full_csv_name,std::ofstream::out | std::ofstream::app);
+      }
+      else
+      {
+          // The file does not exist yet
+          csv_cum_ofstream.open(full_csv_name);
+          csv_cum_ofstream << "current_txpower_dBm,avg_PRR,avg_latency_ms" << std::endl;
+      }
+
+      csv_cum_ofstream << txPower << "," << prrSup.getAveragePRR () << "," << prrSup.getAverageLatency () << std::endl;
+
+      std::cout << "Average PRR: " << prrSup.getAveragePRR () << std::endl;
+      std::cout << "Average latency (ms): " << prrSup.getAverageLatency () << std::endl;
+  }
 
   return 0;
 }

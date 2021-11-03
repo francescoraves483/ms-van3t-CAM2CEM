@@ -32,11 +32,14 @@ namespace ns3
     void setVDP(VDP* vdp){m_geonet->setVDP(vdp);}
     void setSocketTx(Ptr<Socket> socket_tx) {m_geonet->setSocketTx(socket_tx);}
     void setSocketRx(Ptr<Socket> socket_rx);
+    //void setSocketRxPkt(Ptr<Socket> socket_rx);
     void addCAMRxCallback(std::function<void(BTPDataIndication_t,Address,uint32_t)> rx_callback) {m_cam_ReceiveCallback=rx_callback;}
+    void addCAMRxCallbackPkt(std::function<void(BTPDataIndication_t,Address,Ptr<Packet>)> rx_callback) {m_cam_ReceiveCallbackPkt=rx_callback;}
     void addDENMRxCallback(std::function<void(BTPDataIndication_t,Address,uint32_t)> rx_callback) {m_denm_ReceiveCallback=rx_callback;}
     void addCEMRxCallback(std::function<void(BTPDataIndication_t,Address,uint32_t)> rx_callback) {m_cem_ReceiveCallback=rx_callback;}
     int sendBTP(BTPDataRequest_t dataRequest);
     void receiveBTP(GNDataIndication_t, Address address, uint32_t originalPacketSize);
+    //void receiveBTP(GNDataIndication_t dataIndication,Address address,Ptr<Packet> pkt);
     void cleanup();
 
   private:
@@ -44,6 +47,7 @@ namespace ns3
     Ptr<GeoNet> m_geonet;
 
     std::function<void(BTPDataIndication_t,Address,uint32_t)> m_cam_ReceiveCallback;
+    std::function<void(BTPDataIndication_t,Address,Ptr<Packet>)> m_cam_ReceiveCallbackPkt;
     std::function<void(BTPDataIndication_t,Address,uint32_t)> m_denm_ReceiveCallback;
     std::function<void(BTPDataIndication_t,Address,uint32_t)> m_cem_ReceiveCallback;
 

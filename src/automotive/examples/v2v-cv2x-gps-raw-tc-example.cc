@@ -75,10 +75,13 @@ main (int argc, char *argv[])
   uint32_t nodeCounter = 0;
 
   double dissemination_delay = 0.0;
+  
+  std::string csv_name_cumulative;
   bool send_cem = true;
+  double m_baseline_prr = 150.0;
 
   /*** 0.b LENA + V2X Options ***/
-  double ueTxPower = 42.0;                // Transmission power in dBm
+  double ueTxPower = 23.0;                // Transmission power in dBm
   double probResourceKeep = 0.4;          // Probability to select the previous resource again [0.0-0.8]
   uint32_t mcs = 20;                      // Modulation and Coding Scheme
   bool harqEnabled = false;               // Retransmission enabled (harq not available yet)
@@ -110,6 +113,9 @@ main (int argc, char *argv[])
 
   cmd.AddValue ("raw-trace-folder","Position of Raw GNSS data trace files",raw_trace_file_path);
   cmd.AddValue ("gps-raw-trace", "Name of the Raw GNSS Data trace file", gps_raw_trace);
+  
+  cmd.AddValue ("baseline", "Baseline for PRR calculation", m_baseline_prr);
+  cmd.AddValue ("csv-log-cumulative", "Name of the CSV log file for the cumulative (average) PRR and latency data", csv_name_cumulative);
 
   /* Cmd Line option for v2x */
   cmd.AddValue ("tx-power", "UEs transmission power [dBm]", ueTxPower);
@@ -426,6 +432,9 @@ main (int argc, char *argv[])
   csv_filestream.open(csv_filename.c_str ());
 
   csv_filestream << "vehicle_ID,CAM_rx,CAM_tx,CAM_bytes_tx,CAM_bytes_rx,CEM_rx,CEM_tx,CEM_bytes_tx,CEM_bytes_rx" << std::endl;
+  
+  PRRSupervisor prrSup(m_baseline_prr);
+  prrSup.setTraCIClient(sumoClient);
 
   int i=0;
   /* callback function for node creation */
@@ -448,6 +457,7 @@ main (int argc, char *argv[])
       SimpleCAMSenderCEMHelper.SetAttribute ("IpAddr", Ipv4AddressValue(ipAddresses[i]));
       i++;
       SimpleCAMSenderCEMHelper.SetAttribute ("Model", StringValue("cv2x"));
+      SimpleCAMSenderCEMHelper.SetAttribute ("PRRSupervisor", PointerValue (&prrSup));
       ApplicationContainer setupAppSimpleSender = SimpleCAMSenderCEMHelper.Install (includedNode);
 
       setupAppSimpleSender.Get (0)->GetObject<simpleCAMSenderCEM>()->setCSVOfstream(&csv_filestream);
@@ -533,6 +543,29 @@ main (int argc, char *argv[])
   Simulator::Destroy ();
 
   csv_filestream.close();
+  
+  if(csv_name_cumulative!="")
+  {
+      std::ofstream csv_cum_ofstream;
+      std::string full_csv_name = csv_name_cumulative + ".csv";
+
+      if(access(full_csv_name.c_str(),F_OK)!=-1)
+      {
+          // The file already exists
+          csv_cum_ofstream.open(full_csv_name,std::ofstream::out | std::ofstream::app);
+      }
+      else
+      {
+          // The file does not exist yet
+          csv_cum_ofstream.open(full_csv_name);
+          csv_cum_ofstream << "current_txpower_dBm,avg_PRR,avg_latency_ms" << std::endl;
+      }
+
+      csv_cum_ofstream << ueTxPower << "," << prrSup.getAveragePRR () << "," << prrSup.getAverageLatency () << std::endl;
+
+      std::cout << "Average PRR: " << prrSup.getAveragePRR () << std::endl;
+      std::cout << "Average latency (ms): " << prrSup.getAverageLatency () << std::endl;
+  }
 
   return 0;
 }

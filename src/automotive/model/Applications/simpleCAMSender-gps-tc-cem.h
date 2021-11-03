@@ -9,6 +9,7 @@
 #include "ns3/denBasicService.h"
 #include "ns3/caBasicService.h"
 #include "ns3/ceBasicService.h"
+#include "ns3/PRRSupervisor.h"
 
 
 namespace ns3 {
@@ -84,6 +85,8 @@ private:
 
   Ipv4Address m_ipAddress; //!< C-V2X self IP address (set by 'v2v-cv2x.cc')
   bool m_send_cem;
+  
+  Ptr<PRRSupervisor> m_PRR_supervisor = nullptr;
 
 };
 
