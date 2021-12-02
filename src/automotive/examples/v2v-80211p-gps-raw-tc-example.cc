@@ -65,6 +65,7 @@ main (int argc, char *argv[])
   bool realtime = false;
   int txPower=23;
   float datarate=12;
+  bool send_cem = true;
 
   bool sumo_gui = true;
   double sumo_updates = 0.01;
@@ -94,6 +95,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("csv-prefix", "Prefix for the CSV file name for logging", csv_prefix);
   cmd.AddValue ("dissemination-delay", "Delay, in seconds, after which the CAM and CEM dissemination can start", dissemination_delay);
   cmd.AddValue ("dissemination-terminate-at", "Instant in time at which the dissemination shall be terminated (-1 = disabled, i.e. terminate when the simulation terminates)", terminateAt);
+  cmd.AddValue ("send-cem", "If true, CEMs will be disseminated", send_cem);
 
   cmd.AddValue ("raw-trace-folder","Position of Raw GNSS data trace files",raw_trace_file_path);
   cmd.AddValue ("gps-raw-trace", "Name of the Raw GNSS Data trace file", gps_raw_trace);
@@ -237,6 +239,7 @@ main (int argc, char *argv[])
   simpleCAMSenderCEMHelper SimpleCAMSenderCEMHelper;
   SimpleCAMSenderCEMHelper.SetAttribute ("TraCIClient", PointerValue(sumoClient));
   SimpleCAMSenderCEMHelper.SetAttribute ("RealTime", BooleanValue(realtime));
+  SimpleCAMSenderCEMHelper.SetAttribute ("SendCEM", BooleanValue(send_cem));
 
   // Create vector with the GPS Trace Client map values
   // [old lines of code for using GPS-tc instead of SUMO]

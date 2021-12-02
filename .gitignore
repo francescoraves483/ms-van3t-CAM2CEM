@@ -2,6 +2,8 @@
 valgrind-out.txt
 simulation_log.txt
 simulation_no_cem_log.txt
+test_log.txt
+/*.csv
 
 # Main src wscript
 /src/wscript
@@ -13,6 +15,9 @@ simulation_no_cem_log.txt
 
 /ms-van3t.cflags
 /ms-van3t.cxxflags
+
+/ms-van3t-CAM2CEM.cflags
+/ms-van3t-CAM2CEM.cxxflags
 
 /.editorconfig
 /.mailmap
