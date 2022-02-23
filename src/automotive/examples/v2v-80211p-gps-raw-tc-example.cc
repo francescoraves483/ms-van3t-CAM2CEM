@@ -208,7 +208,7 @@ main (int argc, char *argv[])
   NqosWaveMacHelper wifi80211pMac = NqosWaveMacHelper::Default ();
   Wifi80211pHelper wifi80211p = Wifi80211pHelper::Default ();
   wifi80211p.SetRemoteStationManager ("ns3::ConstantRateWifiManager", "DataMode", StringValue (datarate_config), "ControlMode", StringValue (datarate_config));
-  wifi80211p.EnableLogComponents ();
+  //wifi80211p.EnableLogComponents ();
   NetDeviceContainer netDevices = wifi80211p.Install (wifiPhy, wifi80211pMac, obuNodes);
   wifiPhy.EnablePcapAll ("CEMTraces"); // Uncomment this to create .pcap files with the exchanged CAM/CEM/... messages
 

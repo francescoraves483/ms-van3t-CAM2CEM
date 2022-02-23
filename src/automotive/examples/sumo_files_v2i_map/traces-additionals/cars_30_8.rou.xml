@@ -1,0 +1,97 @@
+<!-- number of vehicles:30 -->
+<!-- generated on 2022-01-05 17:42:12.636393 by "vehicleFlow.py cars_30_8.rou.xml -m 2 -r 1.5 -t 30" -->
+<routes>
+  <route id="0" edges="w_to_c1 c1_to_c2 c2_to_e"/>
+  <route id="1" edges="n1_to_c1 c1_to_s1"/>
+  <route id="2" edges="s1_to_c1 c1_to_n1"/>
+  <route id="3" edges="n2_to_c2 c2_to_s2"/>
+  <route id="4" edges="e_to_c2 c2_to_c1 c1_to_w"/>
+  <route id="5" edges="s2_to_c2 c2_to_n2"/>
+  <route id="6" edges="w_to_c1 c1_to_s1"/>
+  <route id="7" edges="w_to_c1 c1_to_c2 c2_to_s2"/>
+  <route id="8" edges="w_to_c1 c1_to_c2 c2_to_n2"/>
+  <route id="9" edges="w_to_c1 c1_to_n1"/>
+  <route id="10" edges="s1_to_c1 c1_to_c2 c2_to_s2"/>
+  <route id="11" edges="s1_to_c1 c1_to_c2 c2_to_e"/>
+  <route id="12" edges="s1_to_c1 c1_to_c2 c2_to_n2"/>
+  <route id="13" edges="s1_to_c1 c1_to_w"/>
+  <route id="14" edges="s2_to_c2 c2_to_e"/>
+  <route id="15" edges="s2_to_c2 c2_to_c1 c1_to_n1"/>
+  <route id="16" edges="s2_to_c2 c2_to_c1 c1_to_w"/>
+  <route id="17" edges="s2_to_c2 c2_to_c1 c1_to_s1"/>
+  <route id="18" edges="e_to_c2 c2_to_n2"/>
+  <route id="19" edges="e_to_c2 c2_to_c1 c1_to_n1"/>
+  <route id="20" edges="e_to_c2 c2_to_c1 c1_to_s1"/>
+  <route id="21" edges="e_to_c2 c2_to_s2"/>
+  <route id="22" edges="n2_to_c2 c2_to_c1 c1_to_n1"/>
+  <route id="23" edges="n2_to_c2 c2_to_c1 c1_to_w"/>
+  <route id="24" edges="n2_to_c2 c2_to_c1 c1_to_s1"/>
+  <route id="25" edges="n2_to_c2 c2_to_e"/>
+  <route id="26" edges="n1_to_c1 c1_to_w"/>
+  <route id="27" edges="n1_to_c1 c1_to_c2 c2_to_s2"/>
+  <route id="28" edges="n1_to_c1 c1_to_c2 c2_to_e"/>
+  <route id="29" edges="n1_to_c1 c1_to_c2 c2_to_n2"/>
+
+  <vType accel="4" decel="7.5" emergencyDecel="7.5" minGap="5.0" speedDev="0.1" speedFactor="1.2" id="Car0" maxSpeed="27.77" />
+
+      <vehicle id="veh1" type="Car0" depart="1.766211668612297" route="25">
+    </vehicle>
+      <vehicle id="veh2" type="Car0" depart="2.394379065712862" route="16">
+    </vehicle>
+      <vehicle id="veh3" type="Car0" depart="4.905316343637915" route="14">
+    </vehicle>
+      <vehicle id="veh4" type="Car0" depart="5.6780386134643805" route="0">
+    </vehicle>
+      <vehicle id="veh5" type="Car0" depart="6.60452444166935" route="1">
+    </vehicle>
+      <vehicle id="veh6" type="Car0" depart="7.718470247541083" route="16">
+    </vehicle>
+      <vehicle id="veh7" type="Car0" depart="8.677730467135838" route="10">
+    </vehicle>
+      <vehicle id="veh8" type="Car0" depart="8.704375368068424" route="23">
+    </vehicle>
+      <vehicle id="veh9" type="Car0" depart="10.46354740979254" route="1">
+    </vehicle>
+      <vehicle id="veh10" type="Car0" depart="11.166762680291663" route="17">
+    </vehicle>
+      <vehicle id="veh11" type="Car0" depart="11.626279705106592" route="9">
+    </vehicle>
+      <vehicle id="veh12" type="Car0" depart="12.11975768372825" route="24">
+    </vehicle>
+      <vehicle id="veh13" type="Car0" depart="12.744506885129015" route="7">
+    </vehicle>
+      <vehicle id="veh14" type="Car0" depart="13.384533810667328" route="3">
+    </vehicle>
+      <vehicle id="veh15" type="Car0" depart="13.434740425469162" route="16">
+    </vehicle>
+      <vehicle id="veh16" type="Car0" depart="13.609470110196538" route="16">
+    </vehicle>
+      <vehicle id="veh17" type="Car0" depart="13.928377651584858" route="8">
+    </vehicle>
+      <vehicle id="veh18" type="Car0" depart="13.985179294142304" route="10">
+    </vehicle>
+      <vehicle id="veh19" type="Car0" depart="14.185333071387657" route="9">
+    </vehicle>
+      <vehicle id="veh20" type="Car0" depart="14.928957894970267" route="5">
+    </vehicle>
+      <vehicle id="veh21" type="Car0" depart="16.568728971929385" route="15">
+    </vehicle>
+      <vehicle id="veh22" type="Car0" depart="16.685770972559098" route="15">
+    </vehicle>
+      <vehicle id="veh23" type="Car0" depart="17.303210652144152" route="6">
+    </vehicle>
+      <vehicle id="veh24" type="Car0" depart="18.386500172554555" route="23">
+    </vehicle>
+      <vehicle id="veh25" type="Car0" depart="18.46007775642814" route="18">
+    </vehicle>
+      <vehicle id="veh26" type="Car0" depart="19.113520910935787" route="20">
+    </vehicle>
+      <vehicle id="veh27" type="Car0" depart="20.178579462465837" route="14">
+    </vehicle>
+      <vehicle id="veh28" type="Car0" depart="20.487962031223745" route="7">
+    </vehicle>
+      <vehicle id="veh29" type="Car0" depart="22.514681576750824" route="25">
+    </vehicle>
+      <vehicle id="veh30" type="Car0" depart="24.567320375490695" route="24">
+    </vehicle>
+</routes>

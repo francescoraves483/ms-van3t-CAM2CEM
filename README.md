@@ -22,7 +22,7 @@ A public version leveraging a real dataset of 19 vehicles and real, consistent, 
 
 ## IEEE 802.11p
 
-The IEEE 802.11p access technology sample application relies on a V2V scenario with eight regulated intersections. All the vehicles are configured to send both CAMs and CEMs.
+The IEEE 802.11p access technology sample application relies on a V2V scenario with eight regulated intersections. All vehicles are configured to send both CAMs and CEMs.
 
 The simulation can be started with:
 
@@ -34,11 +34,12 @@ After the simulation, you will find, inside the main ns-3.33 folder:
 - a new CSV file, named `gps-raw-tc-log<n>.csv`, where `<n>` is the number of vehicles in the current SUMO trace (the default trace has 10 vehicles).
 - several `.pcapng` files, inside which you will find several Wireshark captures containing the messages exchanged by the vehicles. The CEM messages will be labeled as `BTPB`, as there is currently no Wireshark dissector for this proposed message type.
 
-In this sample application, the transmission power has been set to a value such that all the vehicles can communicate with all the others, to enable a reliable computation of the Packet Delivery Ratio. A new version, enabling the evaluation of the PDR according to the 3GPP TR36.885 V14.0.0 standard for any value of *txpower*, is currently under development and it should be available soon (this metric is already available in the main ms-van3t version).
+This sample application is also able to output an average latency and overall Packet Reception Ratio (PRR) metric (computed around a given baseline for each transmitting vehicle), for the selected scenario, thanks to the *PRR supervisor* module (available inside `ns-3.33/src/automotive/model/Measurements`). This data can be saved to a CSV file with the `--csv-log-cumulative <filename>.csv` option.
+The option `--baseline` can instead be used to tune the PRR baseline (in meters), following the [3GPP TR 36.885 specifications](https://www.3gpp.org/ftp/specs/archive/36_series/36.885/).
 
 ## C-V2X
 
-The 3GPP C-V2X Mode 4 access technology sample application relies on a V2V scenario with eight regulated intersections. All the vehicles are configured to send both CAMs and CEMs.
+The 3GPP C-V2X Mode 4 access technology sample application relies on a V2V scenario with eight regulated intersections. All vehicles are configured to send both CAMs and CEMs.
 
 The simulation can be started with:
 
@@ -51,11 +52,6 @@ You can also disable the CEM transmission (leaving only the CAM messages) with `
 After the simulation, you will find, inside the main ns-3.33 folder:
 - a new CSV file, named `gps-raw-tc-log<n>.csv`, where `<n>` is the number of vehicles in the current SUMO trace (the default trace has 10 vehicles). This file contains some useful network-related metrics, for each vehicle in the scenario.
 
-In this sample application, the transmission power has been set to a value such that all the vehicles can communicate with all the others, to enable a reliable computation of the Packet Delivery Ratio. A new version, enabling the evaluation of the PDR according to the 3GPP TR36.885 V14.0.0 standard for any value of *txpower*, is currently under development and it should be available soon (this metric is already available in the main ms-van3t version).
+This sample application is also able to output an average latency and overall Packet Reception Ratio (PRR) metric (computed around a given baseline for each transmitting vehicle), for the selected scenario, thanks to the *PRR supervisor* module. This data can be saved to a CSV file with the `--csv-log-cumulative <filename>.csv` option.
+The option `--baseline` can instead be used to tune the PRR baseline (in meters), following the [3GPP TR 36.885 specifications](https://www.3gpp.org/ftp/specs/archive/36_series/36.885/).
 
-
-## Acknowledgements
-
-*To be completed as soon as our paper is published.* 
-
-Currently, we have one accepted conference paper which is going to be published soon. As soon as it is officially published, we will update this section of the README accordingly.

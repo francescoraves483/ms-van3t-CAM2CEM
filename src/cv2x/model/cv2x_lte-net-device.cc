@@ -294,8 +294,9 @@ cv2x_LteNetDevice::Receive (Ptr<Packet> p)
     m_rxCallback (this, p, Ipv4L3Protocol::PROT_NUMBER, Address ());
   else if (ipType == 0x06)
     m_rxCallback (this, p, Ipv6L3Protocol::PROT_NUMBER, Address ());
-  else
-    NS_ABORT_MSG ("cv2x_LteNetDevice::Receive - Unknown IP type...");
+    // This part is commented as a temporary workaround to fix a bug when using C-V2X in ms-van3t - more investigation on the issue is currently being performed
+  // else
+    // NS_ABORT_MSG ("cv2x_LteNetDevice::Receive - Unknown IP type...");
 }
 
 
